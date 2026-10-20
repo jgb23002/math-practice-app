@@ -1,12 +1,21 @@
 :root {
-  font-family: system-ui, sans-serif;
-  line-height: 1.5;
-  color: #1f2937;
-  background-color: #f8fafc;
+  font-family: ui-rounded, 'Avenir Next', 'Trebuchet MS', system-ui, sans-serif;
+  font-size: 18px;
+  line-height: 1.6;
+  font-weight: 500;
+  color: #243d37;
+  background: #fcfbf6;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  --ink: #243d37;
+  --muted: #536760;
+  --blue: #3657ce;
+  --blue-dark: #2943a3;
+  --line: #e4e8dc;
+  --radius: 1.5rem;
 }
 
 * {
@@ -15,5 +24,54 @@
 
 body {
   margin: 0;
-  min-width: 320px;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+a,
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:focus-visible {
+  outline: 3px solid #243d37;
+  outline-offset: 5px;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.15;
+  font-weight: 800;
+  text-wrap: balance;
+}
+
+::selection {
+  color: #243d37;
+  background: #f5dda8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
 }

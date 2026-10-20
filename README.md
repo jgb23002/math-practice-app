@@ -6,9 +6,10 @@ TypeScript, and Vite. Requirements and the development checklist are in
 
 ## Current scope
 
-Phase 1 establishes the development tools, shared domain types, project folders,
-and a minimal application shell. Practice features, routing, persistence, and the
-shared page layout are planned for later phases.
+Phases 1 and 2 establish the development tools, shared domain types, responsive
+application layout, home page, and client-side routing. Practice, statistics, and
+settings pages currently show friendly placeholders. Practice logic and
+persistence are planned for later phases.
 
 ## Setup
 
@@ -49,14 +50,14 @@ React Testing Library tests. DOM matchers and cleanup are configured in
 
 ```text
 src/
-├── app/                    # Minimal shell and its component test
+├── app/                    # Application shell, routes, and navigation tests
 ├── components/
 │   ├── common/
 │   ├── layout/
 │   ├── practice/
 │   └── statistics/
-├── hooks/
-├── pages/
+├── hooks/                  # Page-title updates
+├── pages/                  # Home, feature placeholders, and fallback page
 ├── services/
 ├── test/                   # Shared test setup
 ├── types/                  # Questions, sessions, mistakes, statistics, settings
@@ -65,8 +66,37 @@ src/
 └── main.tsx
 ```
 
-Empty feature folders contain `.gitkeep` placeholders. No future-phase components
-or services are implemented yet.
+Empty feature folders contain `.gitkeep` placeholders. Arithmetic generation,
+session state, settings controls, and statistics calculations are not implemented
+yet.
+
+## Routes and navigation
+
+React Router's `BrowserRouter` wraps the application in `src/main.tsx`.
+`src/app/AppRoutes.tsx` defines the following routes:
+
+| Route               | Page                                      |
+| ------------------- | ----------------------------------------- |
+| `/`                 | Home                                      |
+| `/practice/setup`   | Practice setup placeholder                |
+| `/practice/session` | Practice session placeholder              |
+| `/practice/summary` | Session summary placeholder               |
+| `/statistics`       | Statistics placeholder                    |
+| `/settings`         | Settings placeholder                      |
+| Any unmatched path  | Friendly fallback with a return-home link |
+
+Navigation actions use real links styled as large buttons, so browser history and
+standard keyboard interaction work. The layout includes a skip link, visible
+focus indicators, active-page navigation, route-change focus management, and page
+titles. CSS decorations are hidden from assistive technology and transitions
+respect reduced-motion preferences.
+
+Vite's development and preview servers support direct route visits. When deploying
+later, configure the static host to serve `index.html` for application routes so
+that refreshing a nested route works.
+
+The component tests cover all six routes, home actions, active navigation,
+keyboard navigation, page titles, focus changes, and unknown-route recovery.
 
 ## Shared types
 

@@ -1,5 +1,9 @@
 import { expect, test, vi } from 'vitest'
-import type { DifficultyLevel, MathOperation } from '../types/question'
+import type {
+  DifficultyLevel,
+  MathOperation,
+  Question,
+} from '../types/question'
 import * as questionGenerator from './questionGenerator'
 
 const operations = [
@@ -82,6 +86,7 @@ function invariantErrors(
     'correctAnswer',
     'displayText',
     'source',
+    'choices',
   ])
     check(Object.hasOwn(question, field), `Missing field: ${field}.`)
   check(
@@ -106,6 +111,30 @@ function invariantErrors(
     question.mistakePatternId === undefined,
     'Regular generation must not invent a mistake pattern.',
   )
+  const choices = question.choices
+  if (!Array.isArray(choices)) {
+    errors.push('Answer choices must be an array.')
+  } else {
+    check(
+      choices.length === 4,
+      'Every question must have exactly four choices.',
+    )
+    check(new Set(choices).size === 4, 'All four choices must be unique.')
+    check(
+      choices.filter((choice) => choice === question.correctAnswer).length ===
+        1,
+      'The correct answer must appear exactly once.',
+    )
+    check(
+      Array.from(choices).every(
+        (choice) =>
+          typeof choice === 'number' &&
+          Number.isSafeInteger(choice) &&
+          choice >= 0,
+      ),
+      'All choices must be nonnegative safe integers.',
+    )
+  }
   const numbers = [
     question.firstOperand,
     question.secondOperand,
@@ -242,6 +271,7 @@ function checkSamples(
   const random = seededRandom(seed)
   const ids = new Set<string>()
   const selected = new Set<MathOperation>()
+  const correctPositions = new Set<number>()
   for (let sample = 0; sample < count; sample++) {
     const draws: number[] = []
     let question: unknown
@@ -268,12 +298,17 @@ function checkSamples(
       throw new Error(
         `${errors.join('\n')}\n${failureDetails(label, sample, draws, question)}`,
       )
-    const generated = question as { id: string; operation: MathOperation }
+    const generated = question as Question
     ids.add(generated.id)
     selected.add(generated.operation)
+    correctPositions.add(generated.choices.indexOf(generated.correctAnswer))
   }
   expect(ids.size).toBe(count)
   expect(selected).toEqual(new Set(enabled))
+  expect(
+    correctPositions,
+    `All correct-answer positions must be reachable: ${label}`,
+  ).toEqual(new Set([0, 1, 2, 3]))
 }
 
 test.each(
@@ -336,7 +371,7 @@ test.each(levels)('division Level %s every divisor boundary', (difficulty) => {
       ]
       let index = 0
       const question = questionGenerator.generateDivisionQuestion(difficulty, {
-        random: () => draws[index++],
+        random: () => draws[Math.min(index++, draws.length - 1)],
         createId: () => `division-${difficulty}-${divisor}-${endpoint}`,
         maxAttempts: 1,
       })
@@ -382,7 +417,7 @@ test('a failure reports the seed, sample, random draws, question, and replay com
       'Division by zero is forbidden.',
       'division Level 1 seed 0',
       'sample=0 (zero-based)',
-      'randomDraws=[0.23606797284446657,0.278566908556968]',
+      'randomDraws=[0.23606797284446657,0.278566908556968,',
       'question={',
       '"secondOperand":0',
       "Replay: npm test -- src/services/questionGenerator.samples.test.ts -t 'division Level 1 seed 0'",

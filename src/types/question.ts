@@ -18,5 +18,5 @@ export interface Question {
   mistakePatternId?: string
 }
 
-/** Phase 4 arithmetic data; Phase 5 adds choices to produce a display-ready Question. */
+/** Arithmetic data accepted by answer-choice generation before choices are attached. */
 export type ArithmeticQuestion = Omit<Question, 'choices'>

@@ -1,10 +1,10 @@
 import { expect, test, vi } from 'vitest'
 import type {
-  ArithmeticQuestion,
+  Question,
   DifficultyLevel,
   MathOperation,
 } from '../types/question'
-import { isValidArithmeticQuestion } from '../utils/validation'
+import { isValidQuestion } from '../utils/validation'
 import {
   generateAdditionQuestion,
   generateDivisionQuestion,
@@ -50,7 +50,7 @@ function expectRange(value: number, minimum: number, maximum: number) {
 
 // Expectations below are independent fixtures from Section 7 and the documented defaults.
 function expectArithmetic(
-  question: ArithmeticQuestion,
+  question: Question,
   operation: MathOperation,
   difficulty: DifficultyLevel,
 ) {
@@ -63,7 +63,14 @@ function expectArithmetic(
   expect(question.operation).toBe(operation)
   expect(question.difficulty).toBe(difficulty)
   expect(question.source).toBe('regular')
-  expect(question).not.toHaveProperty('choices')
+  expect(question.choices).toHaveLength(4)
+  expect(new Set(question.choices).size).toBe(4)
+  expect(question.choices.filter((choice) => choice === answer)).toHaveLength(1)
+  expect(
+    question.choices.every(
+      (choice) => Number.isSafeInteger(choice) && choice >= 0,
+    ),
+  ).toBe(true)
   expect(Number.isSafeInteger(answer)).toBe(true)
   expect(answer).toBeGreaterThanOrEqual(0)
   const symbols = {
@@ -119,7 +126,7 @@ function expectArithmetic(
         expect(answer).toBeLessThanOrEqual(difficulty === 1 ? 5 : 10)
       break
   }
-  expect(isValidArithmeticQuestion(question)).toBe(true)
+  expect(isValidQuestion(question)).toBe(true)
 }
 
 test.each(operandBounds)(
@@ -239,7 +246,7 @@ test.each(
     const random = seededRandom(seed)
     const ids = new Set<string>()
     for (let index = 0; index < 128; index++) {
-      let question: ArithmeticQuestion | undefined
+      let question: Question | undefined
       try {
         question = generateQuestion(operation, difficulty, { random })
         expectArithmetic(question, operation, difficulty)
@@ -364,4 +371,19 @@ test('bounds unexpected ID failures at the configured attempt count', () => {
     }),
   ).toThrow(QuestionGenerationError)
   expect(createId).toHaveBeenCalledTimes(2)
+})
+
+test('bounds failures in answer-choice randomness and retains their cause', () => {
+  let draws = 0
+  // Two valid operand draws, followed by an invalid draw for distractor selection.
+  const random = vi.fn(() => [0.5, 0.5, NaN][draws++ % 3])
+  let failure: unknown
+  try {
+    generateQuestion('addition', 1, { random, maxAttempts: 2 })
+  } catch (error) {
+    failure = error
+  }
+  expect(failure).toBeInstanceOf(QuestionGenerationError)
+  expect(failure).toMatchObject({ attempts: 2, cause: expect.any(RangeError) })
+  expect(random).toHaveBeenCalledTimes(6)
 })

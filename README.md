@@ -6,12 +6,12 @@ TypeScript, and Vite. Requirements and the development checklist are in
 
 ## Current scope
 
-Phases 1–4 establish the development tools, shared domain types, responsive
+Phases 1–5 establish the development tools, shared domain types, responsive
 application layout, home page, routing, practice configuration, and a tested
-arithmetic-generation service. Students can configure practice and review their
-choices on the session page. Generated questions are not displayed yet; answer
-choices, interactive cards, statistics, and settings controls belong to later
-phases.
+question-generation service with multiple-choice answers. Students can configure
+practice and review their choices on the session page. Generated questions are
+not displayed yet; interactive cards, statistics, and settings controls belong
+to later phases.
 
 ## Setup
 
@@ -61,7 +61,7 @@ src/
 ├── config/                 # Practice options and arithmetic difficulty rules
 ├── hooks/                  # Page titles and access to practice configuration
 ├── pages/                  # Home, setup, session plan, placeholders, and fallback
-├── services/               # Arithmetic question generation
+├── services/               # Arithmetic, distractors, and shuffled answer choices
 ├── test/                   # Shared test setup
 ├── types/                  # Questions, sessions, mistakes, statistics, settings
 ├── utils/                  # Random integers, shuffling, IDs, and validation
@@ -140,10 +140,10 @@ const addition = generateQuestion('addition', 1)
 const mixed = generateQuestion(['addition', 'division'], 3)
 ```
 
-Each result is an `ArithmeticQuestion` containing a UUID, operation, operands,
-correct answer, difficulty, display text, and `source: 'regular'`. `ArithmeticQuestion`
-is the arithmetic core of `Question`; Phase 5 will attach four answer choices to
-produce a display-ready `Question`. No empty or invented choices are returned.
+Each result is a complete `Question` containing a UUID, operation, operands,
+correct answer, difficulty, display text, `source: 'regular'`, and four shuffled
+answer choices. `ArithmeticQuestion` represents the arithmetic core accepted by
+the separate answer-choice service before choices are attached.
 The service is independent of React and is not wired into the practice page yet.
 
 All numeric bounds are inclusive and live in `src/config/difficulty.ts`:
@@ -175,10 +175,12 @@ For mixed practice, each enabled operation has an equal interval in the random
 selection. Unsupported, empty, or duplicate operation selections and invalid
 difficulty levels are rejected before generation.
 
-Every generated core passes `getArithmeticQuestionErrors` before it is returned.
+Every generated question passes `getQuestionErrors` before it is returned.
 Validation checks safe nonnegative integers, arithmetic correctness, difficulty
-boundaries, display text, ID, and source metadata. Generation failures retry three
-times by default, with a hard limit of ten configurable attempts, then throw
+boundaries, display text, ID, source metadata, and all four choices. Arithmetic
+cores can still be checked separately with `getArithmeticQuestionErrors`.
+Generation failures retry three times by default, with a hard limit of ten
+configurable attempts, then throw
 `QuestionGenerationError` with the attempt count and original cause. Invalid
 requests fail immediately. No retry can silently change the selected difficulty.
 
@@ -190,8 +192,7 @@ without `randomUUID`.
 Unit tests cover all sixteen operation/level combinations, exact boundaries,
 both multiplication families, zero and maximum answers, dividend caps, mixed
 selection, invalid data, bounded failures, utilities, and reproducible sample
-batches. Shuffling uses Fisher–Yates and leaves the input unchanged; distractor
-generation remains Phase 5.
+batches. Shuffling uses Fisher–Yates and leaves the input unchanged.
 
 The extended sample suite checks 4,000 questions for each of the sixteen
 operation/level combinations (four fixed seeds), plus 512 questions for every
@@ -199,19 +200,50 @@ nonempty enabled-operation subset at every level. It also checks minimum and
 maximum quotients for every allowed divisor. Expected boundaries are independent
 of the production configuration. Failures include the operation or enabled
 subset, difficulty, seed, sample index, random draws, question data, and a replay
-command. Sample IDs are deterministic; the original generator tests and UUID
-utility tests separately exercise production IDs.
+command. Every sample also checks exactly four unique nonnegative integer
+choices containing the correct answer once. Every seeded batch checks that the
+correct answer reaches all four positions. Sample IDs are deterministic; the
+original generator tests and UUID utility tests separately exercise production IDs.
 
-Run the generator and validation suites together with:
+Run the service and utility suites together with:
 
 ```bash
-npm test -- src/services/questionGenerator.test.ts src/services/questionGenerator.samples.test.ts src/utils/validation.test.ts
+npm test -- src/services src/utils
 ```
 
 Malformed-data tests cover every operation and level, each missing required
 field, invalid types, unsafe or fractional numbers, incorrect arithmetic, zero
 divisors, rounded quotients, negative subtraction, and invalid source metadata.
-Answer-choice validation remains part of Phase 5.
+Complete-question validation also rejects missing, duplicate, negative,
+fractional, non-finite, and sparse answer choices.
+
+## Multiple-choice answers
+
+`src/services/answerChoices.ts` exports `generateDistractors` and
+`generateAnswerChoices` for a validated `ArithmeticQuestion`. Addition candidates
+include omitted addends and carrying mistakes; subtraction includes borrowing
+mistakes and confusing subtraction with addition. Multiplication uses adjacent
+table facts. Division uses adjacent dividends from the same fact family and
+neighboring divisors only when they produce whole answers.
+
+Operation-specific candidates are combined with nearby integers and filtered to
+exclude the correct answer, duplicates, negatives, fractions, unsafe numbers,
+and remote values. The answer neighborhood has radius
+`max(3, min(10, answer), ceil(answer / 4))`; it leaves room for three alternatives
+at zero and small answers while permitting nearby table and carrying mistakes.
+This is a distractor policy, separate from Section 7's equation boundaries.
+
+Random selection has a default budget of 12 attempts and a configurable hard
+limit of 32. If repeated draws do not produce three unique distractors, a finite
+scan of the candidate pool fills the remaining spots. The nearby-number pool
+guarantees enough alternatives. Invalid random outputs throw instead of looping.
+The correct answer is then combined with the three distractors and all four are
+shuffled with Fisher–Yates. Neither service mutates the input question.
+
+Tests cover carrying/borrowing mistakes, neighboring facts, zero and small answers,
+large factors with a zero product, maximum results, constant random sources,
+retry bounds, malformed choices, and all correct-answer positions for an unchanged
+question. Phase 6 will add the interactive question card.
 
 ## Shared types
 

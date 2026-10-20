@@ -7,6 +7,7 @@ import type {
   ArithmeticQuestion,
   DifficultyLevel,
   MathOperation,
+  Question,
 } from '../types/question'
 
 export function isMathOperation(value: unknown): value is MathOperation {
@@ -29,7 +30,7 @@ function nonemptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
 }
 
-/** Checks arithmetic only. Four-choice validation belongs to Phase 5. */
+/** Checks arithmetic independently of the answer-choice presentation. */
 export function getArithmeticQuestionErrors(value: unknown): string[] {
   if (typeof value !== 'object' || value === null || Array.isArray(value))
     return ['Question must be an object.']
@@ -136,4 +137,30 @@ export function isValidArithmeticQuestion(
   value: unknown,
 ): value is ArithmeticQuestion {
   return getArithmeticQuestionErrors(value).length === 0
+}
+
+/** Validates a complete question, including all four answer choices. */
+export function getQuestionErrors(value: unknown): string[] {
+  const errors = getArithmeticQuestionErrors(value)
+  if (typeof value !== 'object' || value === null || Array.isArray(value))
+    return errors
+  const question = value as Record<string, unknown>
+  const choices = question.choices
+  if (!Array.isArray(choices) || choices.length !== 4) {
+    errors.push('Questions must contain exactly four answer choices.')
+    return errors
+  }
+  // Array.from also exposes holes in sparse arrays rather than skipping them.
+  if (!Array.from(choices).every(nonnegativeInteger))
+    errors.push('Answer choices must be nonnegative safe integers.')
+  if (new Set(choices).size !== 4) errors.push('Answer choices must be unique.')
+  if (
+    choices.filter((choice) => choice === question.correctAnswer).length !== 1
+  )
+    errors.push('The correct answer must appear exactly once.')
+  return errors
+}
+
+export function isValidQuestion(value: unknown): value is Question {
+  return getQuestionErrors(value).length === 0
 }

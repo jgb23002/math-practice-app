@@ -7,14 +7,16 @@ import type {
   ArithmeticQuestion,
   DifficultyLevel,
   MathOperation,
+  Question,
 } from '../types/question'
 import { createUniqueId } from '../utils/ids'
 import { randomInt, type RandomSource } from '../utils/math'
 import {
-  getArithmeticQuestionErrors,
+  getQuestionErrors,
   isDifficultyLevel,
   isMathOperation,
 } from '../utils/validation'
+import { generateAnswerChoices } from './answerChoices'
 
 export const DEFAULT_GENERATION_ATTEMPTS = 3
 export const MAX_GENERATION_ATTEMPTS = 10
@@ -29,10 +31,9 @@ export class QuestionGenerationError extends Error {
   readonly attempts: number
 
   constructor(attempts: number, cause: unknown) {
-    super(
-      `Could not generate a valid arithmetic question after ${attempts} attempts.`,
-      { cause },
-    )
+    super(`Could not generate a valid question after ${attempts} attempts.`, {
+      cause,
+    })
     this.name = 'QuestionGenerationError'
     this.attempts = attempts
   }
@@ -106,12 +107,12 @@ function generateEquation(
   }
 }
 
-/** Generates the arithmetic core; answer choices and UI are added in later phases. */
+/** Generates a complete arithmetic question with four shuffled answer choices. */
 export function generateQuestion(
   operationOrOperations: MathOperation | readonly MathOperation[],
   difficulty: DifficultyLevel,
   options: GenerationOptions = {},
-): ArithmeticQuestion {
+): Question {
   const operations =
     typeof operationOrOperations === 'string'
       ? [operationOrOperations]
@@ -147,7 +148,7 @@ export function generateQuestion(
         difficulty,
         random,
       )
-      const question: ArithmeticQuestion = {
+      const core: ArithmeticQuestion = {
         id: createId(),
         operation,
         firstOperand: first,
@@ -157,7 +158,11 @@ export function generateQuestion(
         displayText: `${first} ${QUESTION_SYMBOLS[operation]} ${second} = ?`,
         source: 'regular',
       }
-      const errors = getArithmeticQuestionErrors(question)
+      const question: Question = {
+        ...core,
+        choices: generateAnswerChoices(core, { random }),
+      }
+      const errors = getQuestionErrors(question)
       if (errors.length > 0) throw new Error(errors.join(' '))
       return question
     } catch (error) {
@@ -170,27 +175,27 @@ export function generateQuestion(
 export function generateAdditionQuestion(
   difficulty: DifficultyLevel,
   options?: GenerationOptions,
-): ArithmeticQuestion {
+): Question {
   return generateQuestion('addition', difficulty, options)
 }
 
 export function generateSubtractionQuestion(
   difficulty: DifficultyLevel,
   options?: GenerationOptions,
-): ArithmeticQuestion {
+): Question {
   return generateQuestion('subtraction', difficulty, options)
 }
 
 export function generateMultiplicationQuestion(
   difficulty: DifficultyLevel,
   options?: GenerationOptions,
-): ArithmeticQuestion {
+): Question {
   return generateQuestion('multiplication', difficulty, options)
 }
 
 export function generateDivisionQuestion(
   difficulty: DifficultyLevel,
   options?: GenerationOptions,
-): ArithmeticQuestion {
+): Question {
   return generateQuestion('division', difficulty, options)
 }

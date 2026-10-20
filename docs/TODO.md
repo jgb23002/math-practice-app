@@ -204,30 +204,30 @@ Implementation note: Phase 4 returns a validated `ArithmeticQuestion` core. The
 
 ### 17. Generate Incorrect Answer Choices
 
-- [ ] Generate three incorrect answers.
-- [ ] Ensure incorrect answers differ from the correct answer.
-- [ ] Ensure all choices are unique.
-- [ ] Keep incorrect answers plausible.
-- [ ] Avoid negative choices when negative values are not allowed.
-- [ ] Prevent fractional choices in whole-number questions.
-- [ ] Add a retry limit to prevent infinite loops.
+- [x] Generate three incorrect answers.
+- [x] Ensure incorrect answers differ from the correct answer.
+- [x] Ensure all choices are unique.
+- [x] Keep incorrect answers plausible.
+- [x] Avoid negative choices when negative values are not allowed.
+- [x] Prevent fractional choices in whole-number questions.
+- [x] Add a retry limit to prevent infinite loops.
 
 ### 18. Add Operation-Specific Distractors
 
-- [ ] Generate nearby-number distractors.
-- [ ] Generate addition mistake distractors.
-- [ ] Generate subtraction mistake distractors.
-- [ ] Generate multiplication-table distractors.
-- [ ] Generate division fact-family distractors.
-- [ ] Test common edge cases such as answers near zero.
+- [x] Generate nearby-number distractors.
+- [x] Generate addition mistake distractors.
+- [x] Generate subtraction mistake distractors.
+- [x] Generate multiplication-table distractors.
+- [x] Generate division fact-family distractors.
+- [x] Test common edge cases such as answers near zero.
 
 ### 19. Shuffle the Answer Choices
 
-- [ ] Combine the correct answer with the distractors.
-- [ ] Shuffle all four choices.
-- [ ] Confirm that the correct answer appears exactly once.
-- [ ] Confirm that the correct answer does not remain in a predictable position.
-- [ ] Add automated tests.
+- [x] Combine the correct answer with the distractors.
+- [x] Shuffle all four choices.
+- [x] Confirm that the correct answer appears exactly once.
+- [x] Confirm that the correct answer does not remain in a predictable position.
+- [x] Add automated tests.
 
 ---
 

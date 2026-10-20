@@ -1,0 +1,37 @@
+.practice-plan {
+  display: grid;
+  gap: 1rem;
+  margin-block: 1.5rem;
+  text-align: left;
+}
+
+.practice-plan > div {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #d4dfce;
+}
+
+.practice-plan dt {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.practice-plan dd {
+  margin: 0.2rem 0 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.session-plan {
+  width: 100%;
+  max-width: 30rem;
+  padding: 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: #f2f6ed;
+}
+
+.session-plan > div:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}

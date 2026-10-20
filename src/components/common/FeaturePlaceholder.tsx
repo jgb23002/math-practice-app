@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import usePageTitle from '../../hooks/usePageTitle'
 import ButtonLink from './ButtonLink'
 import Icon, { type IconName } from './Icon'
@@ -8,6 +9,7 @@ interface FeaturePlaceholderProps {
   description: string
   icon: IconName
   showPracticeLink?: boolean
+  children?: ReactNode
 }
 
 function FeaturePlaceholder({
@@ -16,6 +18,7 @@ function FeaturePlaceholder({
   description,
   icon,
   showPracticeLink = false,
+  children,
 }: FeaturePlaceholderProps) {
   usePageTitle(section)
 
@@ -29,6 +32,7 @@ function FeaturePlaceholder({
         <span className="coming-soon">Coming soon</span>
         <h1 id="page-heading">{title}</h1>
         <p className="placeholder-description">{description}</p>
+        {children}
         <div className="placeholder-actions">
           <ButtonLink to="/">Return Home</ButtonLink>
           {showPracticeLink && (

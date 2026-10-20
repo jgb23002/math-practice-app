@@ -99,41 +99,41 @@ Initial routes:
 
 ### 7. Create the Operation Selector
 
-- [ ] Create an operation-selection component.
-- [ ] Add an option for addition.
-- [ ] Add an option for subtraction.
-- [ ] Add an option for multiplication.
-- [ ] Add an option for division.
-- [ ] Allow more than one operation to be selected.
-- [ ] Add a shortcut for selecting all operations.
-- [ ] Visually indicate selected operations.
-- [ ] Make operation controls keyboard accessible.
+- [x] Create an operation-selection component.
+- [x] Add an option for addition.
+- [x] Add an option for subtraction.
+- [x] Add an option for multiplication.
+- [x] Add an option for division.
+- [x] Allow more than one operation to be selected.
+- [x] Add a shortcut for selecting all operations.
+- [x] Visually indicate selected operations.
+- [x] Make operation controls keyboard accessible.
 
 ### 8. Create the Difficulty Selector
 
-- [ ] Create four difficulty options.
-- [ ] Label them Beginner, Easy, Intermediate, and Advanced.
-- [ ] Allow one difficulty level to be selected.
-- [ ] Visually indicate the selected level.
-- [ ] Add a short description for each level.
+- [x] Create four difficulty options.
+- [x] Label them Beginner, Easy, Intermediate, and Advanced.
+- [x] Allow one difficulty level to be selected.
+- [x] Visually indicate the selected level.
+- [x] Add a short description for each level.
 
 ### 9. Create the Session-Length Selector
 
-- [ ] Add a 5-question option.
-- [ ] Add a 10-question option.
-- [ ] Add a 20-question option.
-- [ ] Add a continuous-practice option.
-- [ ] Set a sensible default session length.
+- [x] Add a 5-question option.
+- [x] Add a 10-question option.
+- [x] Add a 20-question option.
+- [x] Add a continuous-practice option.
+- [x] Set a sensible default session length.
 
 ### 10. Build the Practice Setup Page
 
-- [ ] Add the operation selector.
-- [ ] Add the difficulty selector.
-- [ ] Add the session-length selector.
-- [ ] Add a **Start Session** button.
-- [ ] Disable the button when no operation is selected.
-- [ ] Display a validation message when necessary.
-- [ ] Pass the selected configuration to the practice session.
+- [x] Add the operation selector.
+- [x] Add the difficulty selector.
+- [x] Add the session-length selector.
+- [x] Add a **Start Session** button.
+- [x] Disable the button when no operation is selected.
+- [x] Display a validation message when necessary.
+- [x] Pass the selected configuration to the practice session.
 
 ---
 

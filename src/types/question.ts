@@ -17,3 +17,6 @@ export interface Question {
   source: QuestionSource
   mistakePatternId?: string
 }
+
+/** Phase 4 arithmetic data; Phase 5 adds choices to produce a display-ready Question. */
+export type ArithmeticQuestion = Omit<Question, 'choices'>

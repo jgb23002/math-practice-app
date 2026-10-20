@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+.vitest/
+package-lock.json
+
+# Preserve the supplied assignment documents' formatting.
+docs/Specification.md
+docs/TODO.md

@@ -9,16 +9,30 @@ import { createUniqueId } from '../utils/ids'
 import { isValidPracticeConfiguration } from '../utils/practiceConfiguration'
 import { isValidQuestion } from '../utils/validation'
 import { generateQuestion } from './questionGenerator'
-import { generateSimilarQuestion } from './similarQuestionGenerator'
+import {
+  generateSimilarQuestion,
+  generateFallbackReviewQuestion,
+} from './similarQuestionGenerator'
+import { generateFallbackQuestion } from './fallbackQuestion'
 import { getReviewPatterns, prioritizeMistakePatterns } from './mistakeReview'
 import { recordMistakes } from './mistakeTracking'
 import type { RandomSource } from '../utils/math'
+import { reportDevelopmentError } from '../utils/developmentErrors'
+import {
+  isPracticeAttempt,
+  isPracticeSession,
+} from '../utils/storageValidation'
 
 export const MAX_REPEAT_ATTEMPTS = 8
+export const MAX_SESSION_GENERATION_FAILURES = 3
+export const QUESTION_ERROR_MESSAGE =
+  'That card got a little tangled. Let’s try again! Your marked answers are safe.'
 
 interface SessionDependencies {
   generate?: typeof generateQuestion
   generateSimilar?: typeof generateSimilarQuestion
+  generateFallback?: typeof generateFallbackQuestion
+  generateSimilarFallback?: typeof generateFallbackReviewQuestion
   mistakePatterns?: readonly MistakePattern[]
   masteryThreshold?: number
   random?: RandomSource
@@ -54,12 +68,26 @@ function withReviewQuestion(
   const byId = new Map(patterns.map((pattern) => [pattern.id, pattern]))
   let queue = (session.reviewQueue ?? []).filter((id) => byId.has(id))
   if (queue.length === 0) {
-    queue = prioritizeMistakePatterns(patterns, {
+    const options = {
       now: Date.parse(
         session.attempts.at(-1)?.attemptedAt ?? session.startedAt,
       ),
       random: dependencies.random,
-    }).map((pattern) => pattern.id)
+    }
+    try {
+      queue = prioritizeMistakePatterns(patterns, options).map(
+        (pattern) => pattern.id,
+      )
+    } catch (error) {
+      reportDevelopmentError(
+        'Review order randomization failed; using a deterministic order',
+        error,
+      )
+      queue = prioritizeMistakePatterns(patterns, {
+        ...options,
+        random: () => 0,
+      }).map((pattern) => pattern.id)
+    }
     if (
       queue.length > 1 &&
       queue[0] === session.previousQuestion?.mistakePatternId
@@ -67,29 +95,80 @@ function withReviewQuestion(
       queue.push(queue.shift()!)
   }
   const pattern = byId.get(queue[0])!
-  const question = (dependencies.generateSimilar ?? generateSimilarQuestion)(
-    pattern,
-    {
-      random: dependencies.random,
-      createId: dependencies.createId,
-      allowedOperations: session.operations,
-      recentQuestions: session.attempts.slice(-5),
-    },
+  const options = {
+    random: dependencies.random,
+    createId: dependencies.createId,
+    allowedOperations: session.operations,
+    recentQuestions: session.attempts.slice(-5),
+  }
+  const next = withGeneratedCard(
+    session,
+    () =>
+      (dependencies.generateSimilar ?? generateSimilarQuestion)(
+        pattern,
+        options,
+      ),
+    () =>
+      (dependencies.generateSimilarFallback ?? generateFallbackReviewQuestion)(
+        pattern,
+        options,
+      ),
+    dependencies,
+    pattern.id,
   )
-  if (
-    !isValidQuestion(question) ||
-    question.source !== 'mistake-review' ||
-    question.mistakePatternId !== pattern.id ||
-    question.difficulty !== session.difficulty ||
-    !session.operations.includes(question.operation)
-  )
-    throw new Error(
-      'Review question must match its original pattern and session plan.',
-    )
   return {
-    ...withCard(session, question, dependencies.createId ?? createUniqueId),
+    ...next,
     reviewQueue: queue.slice(1),
   }
+}
+
+/** Invalid generator output and duplicate options consume a finite retry budget. */
+function withGeneratedCard(
+  session: PracticeSessionState,
+  generate: () => Question,
+  fallback: () => Question,
+  dependencies: SessionDependencies,
+  patternId?: string,
+): PracticeSessionState {
+  const createId = dependencies.createId ?? createUniqueId
+  const source = patternId ? 'mistake-review' : 'regular'
+  function accept(question: unknown) {
+    if (
+      !isValidQuestion(question) ||
+      question.source !== source ||
+      question.difficulty !== session.difficulty ||
+      !session.operations.includes(question.operation) ||
+      (patternId && question.mistakePatternId !== patternId)
+    )
+      throw new Error(
+        'Question failed arithmetic, choices, or practice-plan validation.',
+      )
+    return withCard(session, question, createId)
+  }
+  let repeated: PracticeSessionState | null = null,
+    failures = 0,
+    lastError: unknown
+  for (let attempt = 0; attempt < MAX_REPEAT_ATTEMPTS; attempt++) {
+    try {
+      const next = accept(generate())
+      if (
+        patternId ||
+        !session.previousQuestion ||
+        !sameFact(next.currentQuestion!, session.previousQuestion)
+      )
+        return next
+      repeated = next
+    } catch (error) {
+      lastError = error
+      if (++failures >= MAX_SESSION_GENERATION_FAILURES) break
+    }
+  }
+  if (repeated) return repeated
+  reportDevelopmentError(
+    'Question generation exhausted its retry budget; using a validated fallback',
+    lastError,
+  )
+  return accept(fallback())
 }
 
 function sameFact(left: Question, right: Question) {
@@ -110,37 +189,29 @@ function withNextQuestion(
   session: PracticeSessionState,
   dependencies: SessionDependencies,
 ): PracticeSessionState {
-  const generate = dependencies.generate ?? generateQuestion
-  const createId = dependencies.createId ?? createUniqueId
   try {
     if (session.mode === 'mistake-review')
       return withReviewQuestion(session, dependencies)
-    let candidate: Question | null = null
-    for (let attempt = 0; attempt < MAX_REPEAT_ATTEMPTS; attempt++) {
-      const question = generate(session.operations, session.difficulty)
-      if (
-        !isValidQuestion(question) ||
-        question.source !== 'regular' ||
-        question.difficulty !== session.difficulty ||
-        !session.operations.includes(question.operation)
-      )
-        throw new Error(
-          'Generator returned a question outside the session configuration.',
-        )
-      candidate = question
-      if (
-        !session.previousQuestion ||
-        !sameFact(question, session.previousQuestion)
-      )
-        break
-    }
-    if (!candidate) throw new Error('No valid question was generated.')
-    return withCard(session, candidate, createId)
-  } catch {
+    return withGeneratedCard(
+      session,
+      () =>
+        (dependencies.generate ?? generateQuestion)(
+          session.operations,
+          session.difficulty,
+        ),
+      () =>
+        (dependencies.generateFallback ?? generateFallbackQuestion)(
+          session,
+          dependencies.createId,
+        ),
+      dependencies,
+    )
+  } catch (error) {
+    reportDevelopmentError('Question and fallback generation failed', error)
     return {
       ...session,
       currentQuestion: null,
-      questionError: 'That card got a little tangled. Let’s try again!',
+      questionError: QUESTION_ERROR_MESSAGE,
     }
   }
 }
@@ -177,6 +248,8 @@ export function createPracticeSession(
     attempts: [],
     questionError: null,
   }
+  if (!isPracticeSession(session))
+    throw new Error('Session identity or timestamp is invalid.')
   return withNextQuestion(session, dependencies)
 }
 
@@ -275,6 +348,11 @@ export function transitionPracticeSession(
       : {}),
     attemptedAt: (dependencies.now ?? (() => new Date().toISOString()))(),
   }
+  if (
+    !isPracticeAttempt(attempt) ||
+    session.attempts.some((a) => a.id === attempt.id)
+  )
+    throw new Error('Attempt identity, timestamp, or arithmetic is invalid.')
   const next: PracticeSessionState = {
     ...session,
     attempted: session.attempted + 1,

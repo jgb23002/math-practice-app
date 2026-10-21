@@ -18,6 +18,7 @@
     "typecheck": "tsc -b",
     "check:responsive": "node scripts/check-responsive.mjs",
     "check:session-recovery": "node scripts/check-session-recovery.mjs",
+    "check:errors": "node scripts/check-errors.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

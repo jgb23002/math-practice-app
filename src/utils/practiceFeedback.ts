@@ -1,4 +1,5 @@
 import { randomInt, type RandomSource } from './math'
+import { reportDevelopmentError } from './developmentErrors'
 
 export const welcomeFeedback =
   'Take your time. Every little try helps you grow.'
@@ -22,5 +23,13 @@ export function practiceFeedback(
 ): string {
   if (selfReportedCorrect === null) return welcomeFeedback
   const messages = selfReportedCorrect ? positiveMessages : supportiveMessages
-  return messages[randomInt(0, messages.length - 1, random)]
+  try {
+    return messages[randomInt(0, messages.length - 1, random)]
+  } catch (error) {
+    reportDevelopmentError(
+      'Encouragement randomization failed; using a fixed message',
+      error,
+    )
+    return messages[0]
+  }
 }

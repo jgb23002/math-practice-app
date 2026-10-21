@@ -10,6 +10,8 @@ import {
   MAX_REPEAT_ATTEMPTS,
   transitionPracticeSession,
 } from './practiceSession'
+import { generateFallbackQuestion } from './fallbackQuestion'
+import { isValidQuestion } from '../utils/validation'
 
 function tools() {
   let questionId = 0
@@ -27,6 +29,7 @@ function tools() {
   })
   return {
     generate,
+    generateFallback: vi.fn(generateFallbackQuestion),
     createId: () => `id-${++id}`,
     now: () => '2026-10-20T12:00:00.000Z',
   }
@@ -330,7 +333,11 @@ test('a failed next question preserves the recorded attempt and retry never coun
     createPracticeSession(configuration, dependencies),
     dependencies,
   )
-  dependencies.generate.mockImplementationOnce(() => {
+  const generate = dependencies.generate.getMockImplementation()!
+  dependencies.generateFallback.mockImplementation(() => {
+    throw new Error('Fallback unavailable')
+  })
+  dependencies.generate.mockImplementation(() => {
     throw new Error('Generation failed')
   })
   const action = reportAction(session)
@@ -346,6 +353,7 @@ test('a failed next question preserves the recorded attempt and retry never coun
   })
   expect(failed.questionError).not.toBeNull()
   expect(transitionPracticeSession(failed, action, dependencies)).toBe(failed)
+  dependencies.generate.mockImplementation(generate)
   const recovered = transitionPracticeSession(
     failed,
     { type: 'retry', sessionId: session.id },
@@ -359,10 +367,16 @@ test('a failed next question preserves the recorded attempt and retry never coun
 
 test('a failed first question can be retried without restarting the session', () => {
   const dependencies = tools()
-  dependencies.generate.mockImplementationOnce(() => {
+  const generate = dependencies.generate.getMockImplementation()!
+  dependencies.generateFallback.mockImplementation(() => {
+    throw new Error('Fallback unavailable')
+  })
+  dependencies.generate.mockImplementation(() => {
     throw new Error('Generation failed')
   })
   const failed = createPracticeSession(configuration, dependencies)
+  expect(failed.currentQuestion).toBeNull()
+  dependencies.generate.mockImplementation(generate)
   const recovered = transitionPracticeSession(
     failed,
     { type: 'retry', sessionId: failed.id },
@@ -373,7 +387,7 @@ test('a failed first question can be retried without restarting the session', ()
   expect(recovered.attempts).toHaveLength(0)
 })
 
-test('rejects a malformed or out-of-configuration generated question', () => {
+test('replaces malformed or out-of-configuration output with a validated fallback', () => {
   for (const question of [
     createQuestion({ choices: [] }),
     createQuestion({ difficulty: 2 }),
@@ -381,8 +395,11 @@ test('rejects a malformed or out-of-configuration generated question', () => {
     const dependencies = tools()
     dependencies.generate.mockReturnValue(question)
     const session = createPracticeSession(configuration, dependencies)
-    expect(session.currentQuestion).toBeNull()
-    expect(session.questionError).not.toBeNull()
+    expect(isValidQuestion(session.currentQuestion)).toBe(true)
+    expect(session.currentQuestion?.difficulty).toBe(1)
+    expect(session.currentQuestion?.choices).toHaveLength(4)
+    expect(session.currentQuestion).not.toEqual(question)
+    expect(session.questionError).toBeNull()
   }
 })
 

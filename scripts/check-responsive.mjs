@@ -14,9 +14,11 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { checkSessionRecovery } from './session-recovery-checks.mjs'
+import { checkErrorRecovery } from './error-recovery-checks.mjs'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const recoveryOnly = process.env.SESSION_RECOVERY_ONLY === '1'
+const errorsOnly = process.env.ERROR_RECOVERY_ONLY === '1'
 const screenshotDir = process.env.RESPONSIVE_SCREENSHOT_DIR
 const sizes = [
   [1440, 900],
@@ -289,7 +291,17 @@ try {
     () => evaluate(`!!document.querySelector('main h1')`),
     'application',
   )
-  if (recoveryOnly) {
+  if (errorsOnly) {
+    await checkErrorRecovery({
+      send,
+      evaluate,
+      until,
+      click,
+      inspect,
+      socket,
+      origin,
+    })
+  } else if (recoveryOnly) {
     await checkSessionRecovery({
       send,
       evaluate,
@@ -452,11 +464,11 @@ try {
   }
   assert.deepEqual(browserErrors, [])
   console.log(
-    `Passed ${checks} ${recoveryOnly ? 'recovery dialog layouts and native browser checks' : 'responsive states'}. Tests used an isolated browser profile; existing application data was not accessed.`,
+    `Passed ${checks} ${errorsOnly ? 'error recovery layouts and injected browser failures' : recoveryOnly ? 'recovery dialog layouts and native browser checks' : 'responsive states'}. Tests used an isolated browser profile; existing application data was not accessed.`,
   )
 } catch (error) {
   console.error(
-    `${recoveryOnly ? 'Session recovery' : 'Responsive'} check failed (${currentCase}): ${error.stack ?? error}\n${logs.slice(-1500)}`,
+    `${errorsOnly ? 'Error recovery' : recoveryOnly ? 'Session recovery' : 'Responsive'} check failed (${currentCase}): ${error.stack ?? error}\n${logs.slice(-1500)}`,
   )
   process.exitCode = 1
 } finally {

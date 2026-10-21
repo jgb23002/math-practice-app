@@ -20,6 +20,7 @@ import {
 import type { DifficultyLevel, MathOperation } from '../types/question'
 import { isValidPracticeConfiguration } from '../utils/practiceConfiguration'
 import './PracticeSetupPage.css'
+import ErrorMessage from '../components/common/ErrorMessage'
 
 function PracticeSetupPage() {
   usePageTitle('Practice setup')
@@ -34,6 +35,7 @@ function PracticeSetupPage() {
   const routeState = location.state as {
     editSession?: unknown
     mode?: unknown
+    notice?: unknown
   } | null
   const activePatterns = getActiveMistakePatterns(progress.mistakePatterns)
   const requestedReview =
@@ -117,6 +119,17 @@ function PracticeSetupPage() {
 
   return (
     <section className="setup-page">
+      {(routeState?.notice === 'missing-session' ||
+        routeState?.notice === 'missing-summary') && (
+        <ErrorMessage
+          title="Let’s start a practice"
+          message={
+            routeState.notice === 'missing-summary'
+              ? 'There isn’t a finished practice to show yet. Choose your skills below to begin, or visit Statistics to see your saved progress.'
+              : 'We couldn’t find an active practice. Choose your skills below to start a new adventure.'
+          }
+        />
+      )}
       {confirmReplacement && (
         <ConfirmationDialog
           title="Start a new practice?"
@@ -137,7 +150,14 @@ function PracticeSetupPage() {
               if (replacing.current) return
               replacing.current = true
               const active = getActiveSession()
-              if (active) dispatchSession({ type: 'end', sessionId: active.id })
+              if (
+                active &&
+                !dispatchSession({ type: 'end', sessionId: active.id })
+              ) {
+                replacing.current = false
+                setConfirmReplacement(false)
+                return
+              }
               if (configureSession(candidate)) navigate('/practice/session')
               else {
                 replacing.current = false

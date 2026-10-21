@@ -3,8 +3,11 @@ import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router'
 import './index.css'
 import App from './app/App.tsx'
+import RouteErrorPage from './pages/RouteErrorPage'
 
-const router = createBrowserRouter([{ path: '*', element: <App /> }])
+const router = createBrowserRouter([
+  { path: '*', element: <App />, errorElement: <RouteErrorPage /> },
+])
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -16,6 +16,7 @@ interface PracticeSessionContextValue {
   /** Clears history in memory; returns whether the cleared snapshot was saved. */
   resetStatistics: () => boolean
   storageWarning: string | null
+  actionError: string | null
   configuration: PracticeConfiguration | null
   configureSession: (candidate: unknown) => boolean
   session: PracticeSessionState | null

@@ -23,6 +23,8 @@ import type { JsonStorage } from './storage'
 import { isSessionRecoverySnapshot } from '../utils/sessionRecoveryValidation'
 import { resolveSessionRecovery } from './sessionRecovery'
 import type { SessionRecoverySnapshot } from '../types/persistence'
+import { recoverAttempts, recoverSessions } from './historyRecovery'
+import { reportDevelopmentError } from '../utils/developmentErrors'
 
 export { createEmptyStatistics } from '../utils/statistics'
 
@@ -71,8 +73,9 @@ const migrations: Record<number, (data: StoredProgress) => StoredProgress> = {
 export function loadStoredProgress(storage: JsonStorage) {
   const version = storage.read(STORAGE_KEYS.version, isVersion)
   const settings = storage.read(STORAGE_KEYS.settings, isAppSettings)
-  const sessions = storage.read(STORAGE_KEYS.sessions, isSessionHistory)
-  const attempts = storage.read(STORAGE_KEYS.attempts, isAttemptHistory)
+  const isList = (value: unknown): value is unknown[] => Array.isArray(value)
+  const sessions = storage.read(STORAGE_KEYS.sessions, isList)
+  const attempts = storage.read(STORAGE_KEYS.attempts, isList)
   const statistics = storage.read(STORAGE_KEYS.statistics, isAppStatistics)
   const mistakes = storage.read(
     STORAGE_KEYS.mistakePatterns,
@@ -80,6 +83,12 @@ export function loadStoredProgress(storage: JsonStorage) {
   )
   const recoveredMistakes = recoverMistakePatterns(
     mistakes.status === 'valid' ? mistakes.value : [],
+  )
+  const recoveredSessions = recoverSessions(
+    sessions.status === 'valid' ? sessions.value : [],
+  )
+  const recoveredAttempts = recoverAttempts(
+    attempts.status === 'valid' ? attempts.value : [],
   )
   const results = [settings, sessions, attempts, statistics, mistakes]
   const unavailable =
@@ -95,11 +104,11 @@ export function loadStoredProgress(storage: JsonStorage) {
       settings.status === 'valid' ? settings.value : createDefaultSettings(),
     sessions:
       sessions.status === 'valid'
-        ? [...sessions.value]
+        ? [...recoveredSessions.records]
             .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
             .slice(0, MAX_RECENT_SESSIONS)
         : [],
-    attempts: attempts.status === 'valid' ? attempts.value : [],
+    attempts: recoveredAttempts.records,
     mistakePatterns: recoveredMistakes.patterns,
     statistics:
       statistics.status === 'valid'
@@ -109,12 +118,27 @@ export function loadStoredProgress(storage: JsonStorage) {
   // Repair a missing/corrupt or lagging cache from readable attempts. A larger
   // valid aggregate may include history whose detail category was lost; retain
   // it rather than erasing unaffected totals after that category recovers.
-  if (
-    attempts.status === 'valid' &&
-    (statistics.status !== 'valid' ||
-      statistics.value.attempted < attempts.value.length)
+  const calculated = calculateStatistics(progress.attempts)
+  const cached = progress.statistics
+  const groups = [
+    [cached, calculated],
+    ...(['addition', 'subtraction', 'multiplication', 'division'] as const).map(
+      (operation) => [
+        cached.byOperation[operation],
+        calculated.byOperation[operation],
+      ],
+    ),
+    ...([1, 2, 3, 4] as const).map((level) => [
+      cached.byDifficulty[level],
+      calculated.byDifficulty[level],
+    ]),
+  ]
+  const laggingStatistics = groups.some(([stored, minimum]) =>
+    (['attempted', 'correct', 'incorrect'] as const).some(
+      (field) => stored[field] < minimum[field],
+    ),
   )
-    progress.statistics = calculateStatistics(attempts.value)
+  if (laggingStatistics) progress.statistics = calculated
   if (writable)
     for (let from = versionNumber; from < STORAGE_VERSION; from++)
       progress = migrations[from](progress)
@@ -123,9 +147,21 @@ export function loadStoredProgress(storage: JsonStorage) {
     : !writable
       ? VERSION_WARNING
       : recoveredMistakes.recovered ||
+          recoveredSessions.recovered ||
+          recoveredAttempts.recovered ||
+          laggingStatistics ||
           results.some((result) => result.status === 'invalid')
         ? RECOVERY_WARNING
         : null
+  if (warning)
+    reportDevelopmentError('Stored progress recovery', {
+      version: version.status,
+      categories: results.map((result) => result.status),
+      recoveredSessions: recoveredSessions.recovered,
+      recoveredAttempts: recoveredAttempts.recovered,
+      recoveredMistakes: recoveredMistakes.recovered,
+      laggingStatistics,
+    })
   return { progress, writable, warning }
 }
 
@@ -171,8 +207,9 @@ export function createProgressPersistence(storage: JsonStorage) {
     ? withSessionProgress(restored.progress, restored.session)
     : restored.progress
   let hasRecovery = recovery.status !== 'missing'
-  let warning =
-    recovery.status === 'invalid'
+  let warning = !loaded.writable
+    ? loaded.warning
+    : recovery.status === 'invalid'
       ? 'Your saved practice card couldn’t be restored. Your other progress is still here.'
       : recovery.status === 'unavailable'
         ? SAVE_WARNING

@@ -7,7 +7,11 @@ import {
   createPracticeSession,
   transitionPracticeSession,
 } from './practiceSession'
-import { generateSimilarQuestion } from './similarQuestionGenerator'
+import {
+  generateSimilarQuestion,
+  generateFallbackReviewQuestion,
+} from './similarQuestionGenerator'
+import { isValidQuestion } from '../utils/validation'
 
 const plan: PracticeConfiguration = {
   mode: 'mistake-review',
@@ -26,6 +30,7 @@ function harness(
     mistakePatterns: patterns,
     masteryThreshold,
     generateSimilar,
+    generateSimilarFallback: vi.fn(generateFallbackReviewQuestion),
     createId: () => `id-${++id}`,
     random: () => 0,
     now: () => '2026-10-21T12:00:00.000Z',
@@ -202,13 +207,17 @@ test('selection and reveal change neither mastery nor attempts; rejected reports
 test('generation failure preserves the accepted report and retry does not recount it', () => {
   const generate = vi.fn(generateSimilarQuestion)
   const app = harness([createMistakePattern()], 3, plan, generate)
-  generate.mockImplementationOnce(() => {
+  app.dependencies.generateSimilarFallback.mockImplementation(() => {
+    throw new Error('Fallback unavailable')
+  })
+  generate.mockImplementation(() => {
     throw new Error('No card')
   })
   app.report()
   expect(app.session.currentQuestion).toBeNull()
   expect(app.session.questionError).toMatch(/tangled/)
   expect(app.dependencies.mistakePatterns[0].similarCorrectCount).toBe(1)
+  generate.mockImplementation(generateSimilarQuestion)
   app.dispatch({ type: 'retry', sessionId: app.session.id })
   expect(app.session.currentQuestion).not.toBeNull()
   expect(app.session.attempts).toHaveLength(1)
@@ -226,8 +235,13 @@ test('rejects a generator returning another pattern attribution or operation', (
       ...patch,
     })
     const app = harness([createMistakePattern()], 3, plan, generate)
-    expect(app.session.currentQuestion).toBeNull()
-    expect(app.session.questionError).not.toBeNull()
+    expect(isValidQuestion(app.session.currentQuestion)).toBe(true)
+    expect(app.session.currentQuestion).toMatchObject({
+      mistakePatternId: 'mistake-one',
+      difficulty: 1,
+      source: 'mistake-review',
+    })
+    expect(app.session.questionError).toBeNull()
   }
 })
 

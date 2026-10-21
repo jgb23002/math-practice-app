@@ -30,3 +30,26 @@ test.each([true, false])(
     )
   },
 )
+
+test.each([NaN, Infinity, -1, 1])(
+  'an invalid random sample %s cannot break encouraging feedback',
+  (sample) => {
+    expect(practiceFeedback(true, () => sample)).toBe(
+      'Nice work! Keep being curious.',
+    )
+    expect(practiceFeedback(false, () => sample)).toBe(
+      'Tricky facts take practice. You can try again!',
+    )
+  },
+)
+
+test('unavailable randomness cannot turn an accepted result into a render failure', () => {
+  const random = () => {
+    throw new Error('Random unavailable')
+  }
+  expect(practiceFeedback(null, random)).toBe(welcomeFeedback)
+  expect(practiceFeedback(true, random)).toBe('Nice work! Keep being curious.')
+  expect(practiceFeedback(false, random)).toBe(
+    'Tricky facts take practice. You can try again!',
+  )
+})

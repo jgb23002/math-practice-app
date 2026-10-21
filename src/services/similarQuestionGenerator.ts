@@ -16,6 +16,7 @@ import {
   isValidArithmeticQuestion,
 } from '../utils/validation'
 import { generateAnswerChoices } from './answerChoices'
+import { completeFallbackQuestion } from './fallbackQuestion'
 import {
   DEFAULT_GENERATION_ATTEMPTS,
   MAX_GENERATION_ATTEMPTS,
@@ -316,4 +317,35 @@ export function createSimilarQuestionGenerator(
     )
     return question
   }
+}
+
+/** Deterministic related fallback; never substitute an unrelated regular fact. */
+export function generateFallbackReviewQuestion(
+  pattern: MistakePattern,
+  options: Pick<
+    SimilarQuestionOptions,
+    'allowedOperations' | 'recentQuestions' | 'createId'
+  > = {},
+): Question {
+  if (!isMistakePattern(pattern))
+    throw new TypeError('A valid mistake pattern is required.')
+  const recent = new Set(
+    (options.recentQuestions ?? [])
+      .slice(-RECENT_SIMILAR_QUESTION_LIMIT)
+      .map(mistakePatternKey),
+  )
+  const candidates = Object.values(relatedCandidates(pattern))
+    .flat()
+    .filter(
+      (q) =>
+        !options.allowedOperations ||
+        options.allowedOperations.includes(q.operation),
+    )
+  const core =
+    candidates.find((q) => !recent.has(mistakePatternKey(q))) ?? candidates[0]
+  if (!core) throw new Error('No related fallback fits this practice plan.')
+  return completeFallbackQuestion({
+    ...core,
+    id: (options.createId ?? createUniqueId)(),
+  })
 }

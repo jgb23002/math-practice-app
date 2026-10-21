@@ -1,4 +1,4 @@
-import { useEffect, useRef, type PropsWithChildren } from 'react'
+import { useEffect, useRef, useState, type PropsWithChildren } from 'react'
 import { useBlocker } from 'react-router'
 import SessionExitContext from '../../app/SessionExitContext'
 import usePracticeConfiguration from '../../hooks/usePracticeConfiguration'
@@ -8,6 +8,7 @@ function SessionNavigationSafety({ children }: PropsWithChildren) {
   const { session, getActiveSession, saveCurrentSession, dispatchSession } =
     usePracticeConfiguration()
   const acting = useRef(false)
+  const [leaveFailed, setLeaveFailed] = useState(false)
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
       !!getActiveSession() &&
@@ -50,14 +51,19 @@ function SessionNavigationSafety({ children }: PropsWithChildren) {
   function choose(action: 'stay' | 'pause' | 'end') {
     if (acting.current || blocker.state !== 'blocked') return
     acting.current = true
+    setLeaveFailed(false)
     if (action === 'stay') {
       blocker.reset()
       return
     }
     const active = getActiveSession()
-    if (action === 'end' && active)
-      dispatchSession({ type: 'end', sessionId: active.id })
-    else saveCurrentSession()
+    if (action === 'end' && active) {
+      if (!dispatchSession({ type: 'end', sessionId: active.id })) {
+        acting.current = false
+        setLeaveFailed(true)
+        return
+      }
+    } else saveCurrentSession()
     blocker.proceed()
   }
   return (
@@ -69,6 +75,12 @@ function SessionNavigationSafety({ children }: PropsWithChildren) {
           description="You can keep practicing, leave your card ready for later, or end this session. Only answers you’ve marked count."
           onCancel={() => choose('stay')}
         >
+          {leaveFailed && (
+            <p role="alert">
+              We couldn’t end practice yet. Please try again, or keep
+              practicing.
+            </p>
+          )}
           <button
             type="button"
             className="button button--primary"

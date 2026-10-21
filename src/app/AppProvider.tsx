@@ -27,6 +27,7 @@ import type { AppSettings } from '../types/settings'
 import { playPracticeSound } from '../services/practiceSound'
 import { getReviewPatterns } from '../services/mistakeReview'
 import PracticeSessionContext from './PracticeSessionContext'
+import { reportDevelopmentError } from '../utils/developmentErrors'
 
 function AppProvider({
   children,
@@ -53,6 +54,7 @@ function AppProvider({
   const sessionRef = useRef<PracticeSessionState | null>(
     persistence.recoveredSession,
   )
+  const [actionError, setActionError] = useState<string | null>(null)
 
   useEffect(() => {
     persistence.saveSession(progress, session)
@@ -66,11 +68,20 @@ function AppProvider({
 
   function updateSettings(candidate: unknown) {
     if (!isAppSettings(candidate)) return false
-    commitProgress({
-      ...progressRef.current,
-      settings: structuredClone(candidate),
-    })
-    return true
+    try {
+      commitProgress({
+        ...progressRef.current,
+        settings: structuredClone(candidate),
+      })
+      setActionError(null)
+      return true
+    } catch (error) {
+      reportDevelopmentError('Settings could not be updated', error)
+      setActionError(
+        'Those settings couldn’t be changed yet. Please try again.',
+      )
+      return false
+    }
   }
 
   function patchSettings(changes: Partial<AppSettings>) {
@@ -78,6 +89,7 @@ function AppProvider({
   }
 
   function clearAllData() {
+    setActionError(null)
     sessionRef.current = null
     setSession(null)
     setConfiguration(null)
@@ -88,6 +100,7 @@ function AppProvider({
   }
 
   function resetStatistics() {
+    setActionError(null)
     // Invalidate the old card before React renders; stale reports cannot bring
     // back cleared attempts. Practice preferences remain available in setup.
     sessionRef.current = null
@@ -117,15 +130,25 @@ function AppProvider({
         .length === 0
     )
       return false
-    const next = createPracticeSession(snapshot, {
-      mistakePatterns: progressRef.current.mistakePatterns,
-      masteryThreshold: progressRef.current.settings.masteryThreshold,
-    })
-    sessionRef.current = next
-    setSession(next)
-    commitProgress(withSessionProgress(progressRef.current, next))
-    setConfiguration(snapshot)
-    return true
+    try {
+      const next = createPracticeSession(snapshot, {
+        mistakePatterns: progressRef.current.mistakePatterns,
+        masteryThreshold: progressRef.current.settings.masteryThreshold,
+      })
+      const nextProgress = withSessionProgress(progressRef.current, next)
+      sessionRef.current = next
+      setSession(next)
+      commitProgress(nextProgress)
+      setConfiguration(snapshot)
+      setActionError(null)
+      return true
+    } catch (error) {
+      reportDevelopmentError('Practice could not start', error)
+      setActionError(
+        'Your practice couldn’t start yet. Please try Start Session again.',
+      )
+      return false
+    }
   }
 
   function dispatchSession(action: PracticeSessionAction) {
@@ -140,19 +163,30 @@ function AppProvider({
       )
     )
       return false
-    const next = transitionPracticeSession(current, action, {
-      mistakePatterns: progressRef.current.mistakePatterns,
-      masteryThreshold: progressRef.current.settings.masteryThreshold,
-    })
-    if (next === current) return false
-    // Commit synchronously before React renders: stale callbacks in the same
-    // batch must see the new question/session, not an already recorded attempt.
-    sessionRef.current = next
-    setSession(next)
-    commitProgress(withSessionProgress(progressRef.current, next))
-    if (action.type === 'report' && progressRef.current.settings.soundEnabled)
-      void playPracticeSound()
-    return true
+    try {
+      const next = transitionPracticeSession(current, action, {
+        mistakePatterns: progressRef.current.mistakePatterns,
+        masteryThreshold: progressRef.current.settings.masteryThreshold,
+      })
+      if (next === current) return false
+      // Prepare all fallible work before replacing either live snapshot.
+      const nextProgress = withSessionProgress(progressRef.current, next)
+      // Commit synchronously before React renders: stale callbacks in the same
+      // batch must see the new question/session, not an already recorded attempt.
+      sessionRef.current = next
+      setSession(next)
+      commitProgress(nextProgress)
+      setActionError(null)
+      if (action.type === 'report' && progressRef.current.settings.soundEnabled)
+        void playPracticeSound()
+      return true
+    } catch (error) {
+      reportDevelopmentError('Practice action could not finish', error)
+      setActionError(
+        'We couldn’t finish that step yet. Please try again. Your earlier marks are safe.',
+      )
+      return false
+    }
   }
 
   function restartSession(completedSessionId: string) {
@@ -183,6 +217,7 @@ function AppProvider({
         clearAllData,
         resetStatistics,
         storageWarning,
+        actionError,
         configuration,
         configureSession,
         session,

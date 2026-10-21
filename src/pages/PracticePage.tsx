@@ -11,6 +11,8 @@ import usePageTitle from '../hooks/usePageTitle'
 import usePracticeConfiguration from '../hooks/usePracticeConfiguration'
 import type { PracticeConfiguration } from '../types/practiceConfiguration'
 import './PracticePage.css'
+import ErrorMessage from '../components/common/ErrorMessage'
+import { QUESTION_ERROR_MESSAGE } from '../services/practiceSession'
 
 function ConfiguredCard({
   configuration,
@@ -73,18 +75,13 @@ function ConfiguredCard({
             }
           />
         ) : (
-          <div className="practice-page__recovery">
-            <p role="alert">{session.questionError}</p>
-            <button
-              type="button"
-              className="button button--primary"
-              onClick={() =>
-                dispatchSession({ type: 'retry', sessionId: session.id })
-              }
-            >
-              Try Again
-            </button>
-          </div>
+          <ErrorMessage
+            title="Let’s try another card"
+            message={QUESTION_ERROR_MESSAGE}
+            onRetry={() =>
+              dispatchSession({ type: 'retry', sessionId: session.id })
+            }
+          />
         )}
         <label className="practice-page__animation-setting">
           <input
@@ -152,7 +149,13 @@ function PracticePage() {
   const leaving = useContext(SessionExitContext)
   const { configuration, session } = usePracticeConfiguration()
   if (!configuration || !session)
-    return <Navigate to="/practice/setup" replace />
+    return (
+      <Navigate
+        to="/practice/setup"
+        replace
+        state={{ notice: 'missing-session' }}
+      />
+    )
   if (!session.isActive)
     return leaving ? null : <Navigate to="/practice/summary" replace />
   return (

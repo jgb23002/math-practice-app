@@ -23,7 +23,7 @@ interface QuestionCardProps {
   totalQuestions?: number
   animationsEnabled?: boolean
   showExplanations?: boolean
-  onSelfReport: (result: QuestionCardResult) => void
+  onSelfReport: (result: QuestionCardResult) => boolean | void
   onAnswerSelect?: (answer: number) => void
   onReveal?: (answer: number) => void
   initialSelectedAnswer?: number | null
@@ -104,12 +104,13 @@ function QuestionCardAttempt({
     if (!flippedRef.current || answer === null || reported.current) return
     // Lock synchronously, including rapid events before the next React render.
     reported.current = true
-    setSelfReportedCorrect(correct)
-    onSelfReport({
+    const accepted = onSelfReport({
       questionId: question.id,
       selectedAnswer: answer,
       selfReportedCorrect: correct,
     })
+    if (accepted === false) reported.current = false
+    else setSelfReportedCorrect(correct)
   }
 
   return (

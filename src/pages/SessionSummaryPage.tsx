@@ -16,7 +16,14 @@ function SessionSummaryPage() {
   usePageTitle('Session summary')
   const { session, restartSession, progress } = usePracticeConfiguration()
   const navigate = useNavigate()
-  if (!session) return <Navigate to="/practice/setup" replace />
+  if (!session)
+    return (
+      <Navigate
+        to="/practice/setup"
+        replace
+        state={{ notice: 'missing-summary' }}
+      />
+    )
   if (session.isActive) return <Navigate to="/practice/session" replace />
   const summary = calculateSessionSummary(session)
   const activeCount = getActiveMistakePatterns(progress.mistakePatterns).length

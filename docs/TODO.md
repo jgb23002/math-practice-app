@@ -753,28 +753,30 @@ Verification: see [session-recovery.md](session-recovery.md) for saved-state val
 
 ### 76. Handle Invalid Stored Data
 
-- [ ] Detect invalid settings.
-- [ ] Detect invalid attempts.
-- [ ] Detect invalid sessions.
-- [ ] Detect invalid mistake patterns.
-- [ ] Reset only the affected data category.
-- [ ] Avoid crashing the application.
+- [x] Detect invalid settings.
+- [x] Detect invalid attempts.
+- [x] Detect invalid sessions.
+- [x] Detect invalid mistake patterns.
+- [x] Reset only the affected data category.
+- [x] Avoid crashing the application.
 
 ### 77. Handle Question-Generation Failures
 
-- [ ] Validate every generated question.
-- [ ] Retry generation after an invalid result.
-- [ ] Set a maximum retry count.
-- [ ] Provide a fallback question.
-- [ ] Log useful development errors.
+- [x] Validate every generated question.
+- [x] Retry generation after an invalid result.
+- [x] Set a maximum retry count.
+- [x] Provide a fallback question.
+- [x] Log useful development errors.
 
 ### 78. Add User-Friendly Error Messages
 
-- [ ] Add a general error component.
-- [ ] Explain storage errors in simple language.
-- [ ] Explain missing-session errors.
-- [ ] Provide a safe way to return home.
-- [ ] Avoid exposing technical stack traces.
+- [x] Add a general error component.
+- [x] Explain storage errors in simple language.
+- [x] Explain missing-session errors.
+- [x] Provide a safe way to return home.
+- [x] Avoid exposing technical stack traces.
+
+Verification: see [error-handling.md](error-handling.md) for the failure audit, bounded retries, fallback rules, data preservation, injected browser failures, and automated checks.
 
 ---
 

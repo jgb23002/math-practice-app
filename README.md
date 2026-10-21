@@ -6,7 +6,7 @@ TypeScript, and Vite. Requirements and the development checklist are in
 
 ## Current scope
 
-Phases 1–18 establish the development tools, shared domain types, responsive
+Phases 1–19 establish the development tools, shared domain types, responsive
 application layout, home page, routing, practice configuration, and a tested
 question-generation service with multiple-choice answers and interactive cards.
 Students can configure practice, select an answer, flip a card, and mark how they
@@ -23,6 +23,8 @@ also includes focused-card number shortcuts, accessible announcements, centered
 responsive cards, and optional encouraging messages after recorded self-reports.
 Active cards recover after refresh, with saved selections and revealed answers.
 Navigation prompts let students stay, pause practice, or end their session.
+Failure handling preserves valid saved records, uses validated fallback cards,
+and offers friendly retry/home actions when a page or practice step cannot finish.
 
 ## Setup
 
@@ -57,12 +59,16 @@ Other commands:
   Requires Chrome or Chromium; use `CHROME_BIN` for a custom executable path.
 - `npm run check:session-recovery`: use the same isolated runner to check native
   refresh prompts, exact card recovery, Back/Forward, and safe navigation.
+- `npm run check:errors`: inject corrupt JSON, denied storage, quota failures, and
+  invalid randomness into a disposable browser profile and verify recovery.
 
 See [the responsive checks and visual changes](docs/responsive-checks.md) for
 screen sizes, optional screenshots, and manual device checks. The remaining
 manual accessibility checks are listed in [the accessibility audit](docs/accessibility-audit.md).
 See [session recovery and navigation checks](docs/session-recovery.md) for saved
 state, failure recovery, browser limitations, and manual checks.
+The [error-handling audit](docs/error-handling.md) describes the failure cases,
+retry limits, fallback policies, data preservation, and test simulations.
 
 ESLint checks JavaScript, TypeScript, React hooks, and Fast Refresh exports.
 Prettier handles formatting; the supplied assignment documents retain their
@@ -337,8 +343,13 @@ Repeat avoidance tries at most eight questions. It treats reversed addition and
 multiplication operands as the same fact. If every sampled question repeats the
 previous fact, it uses a valid repeated fact with a fresh ID rather than looping.
 Generated questions are checked against the session's operations and difficulty.
-A generation failure shows a retry action without losing or recounting the
-completed attempt.
+Invalid results and thrown errors consume a budget of three failed generation
+calls within the existing eight-call repeat limit. Exhaustion uses a separately
+validated fallback for the same skills and level. Review fallbacks remain related
+to their original pattern. If the fallback also fails, the card shows **Try Again**
+and **Return Home**, preserving accepted attempts. Preparing a result and its
+mistake/statistics changes succeeds before replacing live state; failures leave
+the revealed card available for a self-report retry.
 
 Finite sessions stop immediately after their configured attempt count, record a
 completion timestamp, and navigate to their summary. Continuous sessions omit
@@ -346,7 +357,8 @@ fixed progress and offer **End Session**.
 Ending with a selected but unreported card asks for confirmation; the unfinished
 card is excluded from the summary. An empty session can end with zero attempts.
 
-Direct navigation without a session redirects to setup. Completed sessions go to
+Direct navigation without a session redirects to setup with a friendly explanation
+and a home action. Completed sessions go to
 their summary, and opening the summary during active practice returns to the
 current card. Active cards survive route changes and refreshes, including the
 question ID, option order, selected answer, reveal state, progress, and review
@@ -416,8 +428,13 @@ Validation checks settings, supported operations and lengths, arithmetic bounds,
 nonnegative integer answers, dates, IDs, duplicate attempts, session totals, and
 consistent aggregate groups. Missing categories use defaults. A corrupt category
 recovers independently without deleting other categories or unrelated keys.
-Missing, corrupt, or lagging statistics are rebuilt from readable attempts;
-larger valid aggregates survive loss of attempt details.
+Partially damaged attempt/session lists retain valid records and reject duplicate
+identities without summing their counts. Mistake lists retain their existing
+record-level salvage and mastery rules. Invalid preference objects reset only
+the settings category.
+Missing, corrupt, or lagging statistics are rebuilt from readable attempts,
+including same-sized caches with inconsistent operation, difficulty, or result
+counts. Larger consistent aggregates survive loss of attempt details.
 
 Unversioned data is version 0. The initial migration accepts independently
 validated category shapes and upgrades the metadata to version 1. A migration
@@ -720,8 +737,9 @@ Review supports 5, 10, 20, and continuous sessions. It also finishes early when
 all matching patterns are mastered, showing a supportive summary and the actual
 number of review attempts completed. The next card is generated against projected
 mastery from the just-recorded result, so it cannot target a newly mastered
-pattern. Generation failures retain the accepted attempt and expose the existing
-retry action; retry never recounts it. Continuous review also supports End Session.
+pattern. Generation failures retain the accepted attempt, retry within a fixed
+budget, and use a related fallback. If no valid fallback is available, a retry
+action appears; retry never recounts the attempt. Continuous review also supports End Session.
 
 Session metadata optionally stores `mode`; review attempts optionally store the
 original pattern ID, preserving version-1 compatibility with older records.

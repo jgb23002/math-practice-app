@@ -41,6 +41,7 @@ function renderSummary(
     clearAllData: vi.fn(() => true),
     resetStatistics: vi.fn(() => true),
     storageWarning: null,
+    actionError: null,
     session,
     configuration: {
       operations: ['addition'] as const,

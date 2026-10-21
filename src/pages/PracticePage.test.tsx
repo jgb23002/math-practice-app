@@ -6,6 +6,8 @@ import { afterEach, expect, test, vi } from 'vitest'
 import App from '../app/App'
 import { STORAGE_KEYS } from '../config/storage'
 import * as questionGenerator from '../services/questionGenerator'
+import * as fallbackQuestion from '../services/fallbackQuestion'
+import { MAX_SESSION_GENERATION_FAILURES } from '../services/practiceSession'
 import { createQuestion } from '../test/questionFixtures'
 import type { PracticeSessionLength } from '../types/practiceConfiguration'
 
@@ -162,19 +164,24 @@ test('turns animations off without changing the answer', async () => {
 })
 
 test('recovers from a generation error with a friendly retry', async () => {
+  vi.spyOn(fallbackQuestion, 'generateFallbackQuestion').mockImplementation(
+    () => {
+      throw new Error('Fallback unavailable')
+    },
+  )
   const generator = vi
     .spyOn(questionGenerator, 'generateQuestion')
-    .mockReturnValue(createQuestion())
-    .mockImplementationOnce(() => {
+    .mockImplementation(() => {
       throw new Error('Generation failed')
     })
   const user = await startPractice()
   expect(screen.getByRole('alert')).toHaveTextContent(
     'That card got a little tangled.',
   )
+  generator.mockReturnValue(createQuestion())
   await user.click(screen.getByRole('button', { name: 'Try Again' }))
   expect(screen.getByRole('heading', { name: '3 + 4 = ?' })).toBeVisible()
-  expect(generator).toHaveBeenCalledTimes(2)
+  expect(generator).toHaveBeenCalledTimes(MAX_SESSION_GENERATION_FAILURES + 1)
 })
 
 test('rapid clicks on both self-report buttons count once and reset the next card', async () => {
@@ -290,9 +297,14 @@ test('an empty continuous session can end without a confirmation or a phantom at
 })
 
 test('retrying a failed next card preserves totals and does not re-record the previous card', async () => {
+  vi.spyOn(fallbackQuestion, 'generateFallbackQuestion').mockImplementation(
+    () => {
+      throw new Error('Fallback unavailable')
+    },
+  )
   const generator = mockQuestions()
   const user = await startPractice()
-  generator.mockImplementationOnce(() => {
+  generator.mockImplementation(() => {
     throw new Error('No next card')
   })
   await user.click(screen.getByRole('button', { name: 'Answer 7' }))
@@ -300,6 +312,7 @@ test('retrying a failed next card preserves totals and does not re-record the pr
   await user.click(screen.getByRole('button', { name: 'I Got It Right' }))
   expectTotals(1, 1, 0)
   expect(screen.getByRole('alert')).toBeVisible()
+  generator.mockReturnValue(createQuestion({ id: 'retry-question' }))
   await user.click(screen.getByRole('button', { name: 'Try Again' }))
   expect(screen.getByText('Question 2 of 10')).toBeVisible()
   expectTotals(1, 1, 0)

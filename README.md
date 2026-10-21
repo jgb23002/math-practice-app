@@ -6,13 +6,14 @@ TypeScript, and Vite. Requirements and the development checklist are in
 
 ## Current scope
 
-Phases 1–7 establish the development tools, shared domain types, responsive
+Phases 1–8 establish the development tools, shared domain types, responsive
 application layout, home page, routing, practice configuration, and a tested
 question-generation service with multiple-choice answers and interactive cards.
 Students can configure practice, select an answer, flip a card, and mark how they
 did. Sessions advance automatically, keep self-reported totals and attempts in
-memory, and finish with a basic completion screen. Detailed summaries,
-persistence, and full settings controls belong to later phases.
+memory, and finish with a session summary and navigation actions. Persistence,
+mistake review, statistics dashboards, and full settings controls belong to later
+phases.
 
 ## Setup
 
@@ -61,11 +62,11 @@ src/
 │   └── statistics/
 ├── config/                 # Practice options and arithmetic difficulty rules
 ├── hooks/                  # Titles, practice configuration, and reduced motion
-├── pages/                  # Home, setup, practice card, placeholders, and fallback
+├── pages/                  # Home, setup, practice, summary, placeholders, fallback
 ├── services/               # Arithmetic, answer choices, and session transitions
-├── test/                   # Shared test setup
+├── test/                   # Shared test setup and session fixtures
 ├── types/                  # Questions, sessions, mistakes, statistics, settings
-├── utils/                  # Random integers, shuffling, IDs, and validation
+├── utils/                  # Randomness, IDs, validation, and session summaries
 ├── index.css
 └── main.tsx
 ```
@@ -90,7 +91,7 @@ React Router's `BrowserRouter` wraps the application in `src/main.tsx`.
 | `/settings`         | Settings placeholder                      |
 | Any unmatched path  | Friendly fallback with a return-home link |
 
-Navigation actions use real links styled as large buttons, so browser history and
+Navigation links are styled as large buttons, so browser history and
 standard keyboard interaction work. The layout includes a skip link, visible
 focus indicators, active-page navigation, route-change focus management, and page
 titles. CSS decorations are hidden from assistive technology and transitions
@@ -316,26 +317,50 @@ A generation failure shows a retry action without losing or recounting the
 completed attempt.
 
 Finite sessions stop immediately after their configured attempt count, record a
-completion timestamp, and navigate to a basic summary of attempted, correct, and
-incorrect totals. Continuous sessions omit fixed progress and offer **End Session**.
+completion timestamp, and navigate to their summary. Continuous sessions omit
+fixed progress and offer **End Session**.
 Ending with a selected but unreported card asks for confirmation; the unfinished
 card is excluded from the summary. An empty session can end with zero attempts.
-Detailed summary fields and actions remain Phase 8.
 
 Direct navigation without a session redirects to setup. Completed sessions go to
 their summary, and opening the summary during active practice returns to the
 current card. Sessions survive route changes in memory; refresh starts with no
-session and redirects to setup. Nothing is written to local storage in Phase 7.
+session and redirects to setup. Nothing is written to local storage yet.
 
 Tests cover all finite lengths, continuous practice beyond 20 attempts, exact
 completion, disagreement with arithmetic correctness, rapid and stale callbacks,
 Strict Mode batching, selection/reveal gating, repeat exhaustion, duplicate IDs,
 generation recovery, navigation resume, and pending-card end confirmation.
 
+## Session summaries
+
+`calculateSessionSummary` derives attempted, correct, and incorrect counts from
+recorded attempts. Accuracy uses the student's self-reports, rounded to the nearest
+whole percentage, and is `0%` for an empty session. Operations practiced include
+only operations with completed attempts; the selected difficulty is also shown.
+The review count includes every completed attempt with `source: 'mistake-review'`.
+Regular practice currently produces zero review attempts.
+
+**Practice Again** starts a fresh session with the completed session's operations,
+difficulty, and length. A synchronous session-ID guard prevents rapid clicks from
+starting multiple sessions. **Change Settings** returns to `/practice/setup` with
+the previous choices restored. **View Statistics** opens the existing statistics
+placeholder, and **Return Home** opens `/`. **Practice Mistakes** is disabled with
+a visible coming-soon explanation until mistake review is implemented.
+
+Completion is recorded once in memory: inactive sessions reject later reports,
+end requests, and retries, preserving the original completion timestamp and
+preventing further question generation. Rendering or revisiting a summary only
+reads the completed snapshot. Persisting completion records belongs to Phase 9.
+
+Tests cover empty and rounded accuracy, self-report semantics, practiced
+operations, review counts, summary navigation, repeated visits, all session
+lengths, rapid restarts, and repeated completion events.
+
 ## Shared types
 
 - `question.ts`: operations, difficulty levels, question sources, and questions.
-- `session.ts`: sessions, attempts, runtime state, self-reports, and session actions.
+- `session.ts`: sessions, attempts, runtime state, summaries, and session actions.
 - `practiceConfiguration.ts`: validated choices passed from setup to session state.
 - `mistake.ts`: mistake patterns and mastery progress.
 - `statistics.ts`: overall, operation, and difficulty totals.

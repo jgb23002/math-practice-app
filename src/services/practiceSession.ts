@@ -125,6 +125,8 @@ export function transitionPracticeSession(
   action: PracticeSessionAction,
   dependencies: SessionDependencies = {},
 ): PracticeSessionState {
+  // Completion is a latch: late reports/end events cannot replace its timestamp
+  // or generate another question once the session is inactive.
   if (!session.isActive || action.sessionId !== session.id) return session
   if (action.type === 'end') return complete(session, dependencies)
   if (action.type === 'retry')

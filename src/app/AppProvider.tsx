@@ -44,9 +44,33 @@ function AppProvider({ children }: PropsWithChildren) {
     return true
   }
 
+  function restartSession(completedSessionId: string) {
+    const current = sessionRef.current
+    if (
+      !current ||
+      current.id !== completedSessionId ||
+      current.isActive ||
+      !current.completedAt
+    )
+      return false
+    // The first call synchronously replaces the completed snapshot; a second
+    // click carrying its old ID cannot create another session.
+    return configureSession({
+      operations: [...current.operations],
+      difficulty: current.difficulty,
+      sessionLength: current.sessionLength,
+    })
+  }
+
   return (
     <PracticeSessionContext.Provider
-      value={{ configuration, configureSession, session, dispatchSession }}
+      value={{
+        configuration,
+        configureSession,
+        session,
+        dispatchSession,
+        restartSession,
+      }}
     >
       {children}
     </PracticeSessionContext.Provider>

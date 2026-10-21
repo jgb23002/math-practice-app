@@ -42,6 +42,17 @@ export interface QuestionResult {
   selfReportedCorrect: boolean
 }
 
+export interface SessionSummary {
+  attempted: number
+  correct: number
+  incorrect: number
+  /** Whole percentage, rounded to the nearest integer; zero for no attempts. */
+  accuracy: number
+  operations: MathOperation[]
+  difficulty: DifficultyLevel
+  mistakeReviewCount: number
+}
+
 /** In-memory session state. The index is the zero-based next/current card position. */
 export interface PracticeSessionState extends PracticeSession {
   sessionLength: PracticeSessionLength

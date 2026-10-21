@@ -421,3 +421,54 @@ test('continuous practice passes 20 attempts and ends without counting an unfini
   ).toBe(ended)
   expect(dependencies.generate).toHaveBeenCalledTimes(26)
 })
+
+test.each([5, 'continuous'] as const)(
+  '%s completion is recorded once and late events cannot replace its timestamp',
+  (sessionLength) => {
+    let tick = 0
+    const dependencies = {
+      ...tools(),
+      now: vi.fn(() =>
+        new Date(Date.UTC(2026, 9, 20, 12, 0, tick++)).toISOString(),
+      ),
+    }
+    let session = createPracticeSession(
+      { ...configuration, sessionLength },
+      dependencies,
+    )
+    const count = sessionLength === 'continuous' ? 3 : sessionLength
+    let lastReport: PracticeSessionAction | undefined
+    for (let index = 0; index < count; index++) {
+      session = reveal(session, dependencies)
+      lastReport = reportAction(session)
+      session = transitionPracticeSession(session, lastReport, dependencies)
+    }
+    if (sessionLength === 'continuous')
+      session = transitionPracticeSession(
+        session,
+        { type: 'end', sessionId: session.id },
+        dependencies,
+      )
+    const completed = session
+    const timestamp = completed.completedAt
+    const clockCalls = dependencies.now.mock.calls.length
+    const generationCalls = dependencies.generate.mock.calls.length
+    for (let repeat = 0; repeat < 20; repeat++) {
+      for (const action of [
+        lastReport!,
+        { type: 'end', sessionId: session.id },
+        { type: 'retry', sessionId: session.id },
+      ] as PracticeSessionAction[])
+        session = transitionPracticeSession(session, action, dependencies)
+    }
+    expect(session).toBe(completed)
+    expect(session.completedAt).toBe(timestamp)
+    expect(timestamp).toBeDefined()
+    expect(session.attempted).toBe(count)
+    expect(session.attempts).toHaveLength(count)
+    expect(dependencies.now).toHaveBeenCalledTimes(clockCalls)
+    expect(dependencies.generate).toHaveBeenCalledTimes(generationCalls)
+    // Start, one timestamp per attempt, and one completion timestamp.
+    expect(clockCalls).toBe(count + 2)
+  },
+)

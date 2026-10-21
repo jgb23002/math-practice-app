@@ -98,3 +98,102 @@ test('commits synchronously so stale callbacks cannot double count within a Reac
   expect(result.current.session!.id).not.toBe(session.id)
   expect(result.current.session!.attempted).toBe(0)
 })
+
+test.each([5, 10, 20, 'continuous'] as const)(
+  'restarts a completed %s session once with the same plan and a fresh identity',
+  (sessionLength) => {
+    let count = 0
+    const generate = vi
+      .spyOn(questionGenerator, 'generateQuestion')
+      .mockImplementation(() => {
+        const first = ++count % 2 === 1 ? 3 : 4
+        const answer = first + 4
+        return createQuestion({
+          id: `question-${count}`,
+          firstOperand: first,
+          correctAnswer: answer,
+          displayText: `${first} + 4 = ?`,
+          choices: [answer - 1, answer, answer + 1, answer + 2],
+          difficulty: 2,
+        })
+      })
+    const { result } = renderHook(usePracticeConfiguration, {
+      wrapper: AppProvider,
+    })
+    act(() => {
+      result.current.configureSession({
+        operations: ['addition', 'division'],
+        difficulty: 2,
+        sessionLength,
+      })
+    })
+    expect(result.current.restartSession(result.current.session!.id)).toBe(
+      false,
+    )
+    const attempts = sessionLength === 'continuous' ? 1 : sessionLength
+    for (let index = 0; index < attempts; index++) {
+      const session = result.current.session!
+      const question = session.currentQuestion!
+      const answer = question.choices[0]
+      act(() => {
+        result.current.dispatchSession({
+          type: 'select',
+          sessionId: session.id,
+          questionId: question.id,
+          answer,
+        })
+        result.current.dispatchSession({
+          type: 'reveal',
+          sessionId: session.id,
+          questionId: question.id,
+          answer,
+        })
+        result.current.dispatchSession({
+          type: 'report',
+          sessionId: session.id,
+          result: {
+            questionId: question.id,
+            selectedAnswer: answer,
+            selfReportedCorrect: true,
+          },
+        })
+      })
+    }
+    if (sessionLength === 'continuous')
+      act(() => {
+        result.current.dispatchSession({
+          type: 'end',
+          sessionId: result.current.session!.id,
+        })
+      })
+    const completed = result.current.session!
+    const timestamp = completed.completedAt
+    const restart = result.current.restartSession
+    act(() => {
+      expect(restart(completed.id)).toBe(true)
+      expect(restart(completed.id)).toBe(false)
+      expect(restart(completed.id)).toBe(false)
+    })
+    expect(result.current.session!.id).not.toBe(completed.id)
+    expect(result.current.session).toMatchObject({
+      isActive: true,
+      operations: ['addition', 'division'],
+      difficulty: 2,
+      sessionLength,
+      attempted: 0,
+      correct: 0,
+      incorrect: 0,
+      attempts: [],
+      currentQuestionIndex: 0,
+      selectedAnswer: null,
+      isAnswerRevealed: false,
+    })
+    expect(result.current.session!.completedAt).toBeUndefined()
+    expect(result.current.session!.currentQuestion).not.toBeNull()
+    expect(completed.completedAt).toBe(timestamp)
+    expect(completed.attempted).toBe(attempts)
+    expect(generate).toHaveBeenCalledTimes(
+      sessionLength === 'continuous' ? 3 : sessionLength + 1,
+    )
+  },
+)

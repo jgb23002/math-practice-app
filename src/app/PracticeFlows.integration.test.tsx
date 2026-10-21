@@ -213,7 +213,7 @@ test.each([true, false])(
     view.unmount()
     mount('/statistics')
     expectNumbers(
-      screen.getByRole('region', { name: 'All your practice' }),
+      await screen.findByRole('region', { name: 'All your practice' }),
       5,
       correct ? 5 : 0,
       correct ? 0 : 5,
@@ -245,7 +245,7 @@ test.each([1, 2, 3, 4])(
     )
     await user.click(screen.getByRole('link', { name: 'View Statistics' }))
     expectNumbers(
-      screen.getByRole('region', { name: 'All your practice' }),
+      await screen.findByRole('region', { name: 'All your practice' }),
       20,
       13,
       7,
@@ -384,7 +384,7 @@ test('new mistake → real review → refresh a revealed card → third correct 
   expectLedger()
   await user.click(screen.getByRole('link', { name: 'View Statistics' }))
   expectNumbers(
-    screen.getByRole('region', { name: 'All your practice' }),
+    await screen.findByRole('region', { name: 'All your practice' }),
     8,
     7,
     1,
@@ -409,7 +409,7 @@ test('new mistake → real review → refresh a revealed card → third correct 
   await user.click(screen.getByRole('button', { name: 'Reset Statistics' }))
   expect(confirm).toHaveBeenCalledTimes(2)
   expectNumbers(
-    screen.getByRole('region', { name: 'All your practice' }),
+    await screen.findByRole('region', { name: 'All your practice' }),
     0,
     0,
     0,
@@ -423,7 +423,7 @@ test('new mistake → real review → refresh a revealed card → third correct 
   view.unmount()
   mount('/statistics')
   expectNumbers(
-    screen.getByRole('region', { name: 'All your practice' }),
+    await screen.findByRole('region', { name: 'All your practice' }),
     0,
     0,
     0,

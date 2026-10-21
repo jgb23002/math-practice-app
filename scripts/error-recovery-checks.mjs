@@ -24,7 +24,7 @@ export async function checkErrorRecovery({
     await until(
       () =>
         evaluate(
-          `!window.__previousErrorDocument && !!document.querySelector('main h1')`,
+          `!window.__previousErrorDocument && !!document.querySelector('main h1:not([data-loading])')`,
         ),
       path,
     )

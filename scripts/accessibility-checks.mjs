@@ -108,7 +108,8 @@ export async function checkAccessibility({
     )
     if (url.startsWith(origin))
       await until(
-        () => evaluate(`!!document.querySelector('main h1')`),
+        () =>
+          evaluate(`!!document.querySelector('main h1:not([data-loading])')`),
         'application rendered',
       )
   }

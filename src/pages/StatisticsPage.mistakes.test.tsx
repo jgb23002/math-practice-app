@@ -16,7 +16,7 @@ import { calculateStatistics } from '../utils/statistics'
 
 afterEach(() => vi.restoreAllMocks())
 
-function renderStatistics(progress?: StoredProgress) {
+async function renderStatistics(progress?: StoredProgress) {
   if (progress)
     expect(saveStoredProgress(createJsonStorage(), progress)).toBe(true)
   const view = render(
@@ -24,6 +24,7 @@ function renderStatistics(progress?: StoredProgress) {
       <App />
     </TestRouter>,
   )
+  await screen.findByRole('heading', { name: 'See how you grow' })
   return { ...view, user: userEvent.setup() }
 }
 const section = () =>
@@ -45,8 +46,8 @@ function expectTotals(
     ).toHaveTextContent(String(value))
 }
 
-test('displays review totals, all tied operations, and ranked active facts with counts, dates, and progress', () => {
-  renderStatistics(createMistakeStatisticsProgress())
+test('displays review totals, all tied operations, and ranked active facts with counts, dates, and progress', async () => {
+  await renderStatistics(createMistakeStatisticsProgress())
   expectTotals(4, 1, 4, 3)
   const frequent = within(section()).getByRole('heading', {
     name: 'Most frequently missed operations',
@@ -84,7 +85,7 @@ test('displays review totals, all tied operations, and ranked active facts with 
 })
 
 test('keyboard filters separate mastered facts without changing stored data or summary totals', async () => {
-  const { user } = renderStatistics(createMistakeStatisticsProgress())
+  const { user } = await renderStatistics(createMistakeStatisticsProgress())
   const saved = JSON.stringify(localStorage)
   const mastered = screen.getByRole('button', { name: 'Mastered (1)' })
   const active = screen.getByRole('button', { name: 'Active (4)' })
@@ -125,7 +126,7 @@ test('keyboard filters separate mastered facts without changing stored data or s
 })
 
 test('no-mistake empty states contain safe zero totals and no fictitious operation winner', async () => {
-  const { user } = renderStatistics(emptyProgress())
+  const { user } = await renderStatistics(emptyProgress())
   expectTotals(0, 0, 0, 0)
   expect(
     screen.getByText(/No saved mistake patterns to compare yet/),
@@ -146,7 +147,7 @@ test.each([false, true])(
     progress.mistakePatterns = [
       createMistakePattern({ mastered, similarCorrectCount: mastered ? 3 : 0 }),
     ]
-    const { user } = renderStatistics(progress)
+    const { user } = await renderStatistics(progress)
     if (mastered) {
       expect(
         screen.getByRole('heading', { name: 'No active mistakes to review' }),
@@ -165,7 +166,7 @@ test.each([false, true])(
 test('custom thresholds display honest progress while recorded mastery survives threshold changes', async () => {
   const progress = createMistakeStatisticsProgress()
   progress.settings.masteryThreshold = 5
-  const { user } = renderStatistics(progress)
+  const { user } = await renderStatistics(progress)
   const active = screen.getByRole('article', {
     name: '3 + 4 = 7 Level 1: Beginner',
   })
@@ -188,10 +189,10 @@ test('custom thresholds display honest progress while recorded mastery survives 
   expect(within(mastered).getByText('Mastered')).toBeVisible()
 })
 
-test('active progress above a lowered goal stays bounded and does not silently change mastery', () => {
+test('active progress above a lowered goal stays bounded and does not silently change mastery', async () => {
   const progress = emptyProgress()
   progress.mistakePatterns = [createMistakePattern({ similarCorrectCount: 5 })]
-  renderStatistics(progress)
+  await renderStatistics(progress)
   expect(within(section()).getByRole('progressbar')).toHaveAttribute(
     'value',
     '3',
@@ -207,7 +208,9 @@ test('active progress above a lowered goal stays bounded and does not silently c
 
 test('reset clears review attempt totals while preserving pattern statistics and mastery across reloads', async () => {
   vi.spyOn(window, 'confirm').mockReturnValue(true)
-  const { user, unmount } = renderStatistics(createMistakeStatisticsProgress())
+  const { user, unmount } = await renderStatistics(
+    createMistakeStatisticsProgress(),
+  )
   const saved = localStorage.getItem(STORAGE_KEYS.mistakePatterns)
   await user.click(screen.getByRole('button', { name: 'Reset Statistics' }))
   expectTotals(4, 1, 0, 0)
@@ -216,7 +219,7 @@ test('reset clears review attempt totals while preserving pattern statistics and
     screen.getByText(/mistake patterns, and mastery progress are unchanged/),
   ).toHaveAttribute('role', 'status')
   unmount()
-  renderStatistics()
+  await renderStatistics()
   expectTotals(4, 1, 0, 0)
   expect(within(section()).getByText('Addition, Multiplication')).toBeVisible()
 })
@@ -233,7 +236,7 @@ test('review reports update advanced statistics and move newly mastered facts to
     }),
   )
   progress.statistics = calculateStatistics(progress.attempts)
-  const { user } = renderStatistics(progress)
+  const { user } = await renderStatistics(progress)
   expectTotals(1, 0, 2, 2)
   await user.click(screen.getByRole('link', { name: 'Practice Mistakes' }))
   expect(screen.getByRole('radio', { name: 'Mistake Review' })).toBeChecked()
@@ -284,7 +287,7 @@ test('incorrect inverse-review reports increase the original operation and reset
   progress.mistakePatterns = [
     createMistakePattern({ incorrectCount: 5, similarCorrectCount: 1 }),
   ]
-  const { user } = renderStatistics(progress)
+  const { user } = await renderStatistics(progress)
   await user.click(screen.getByRole('link', { name: 'Practice Mistakes' }))
   await user.click(screen.getByRole('checkbox', { name: 'Subtraction' }))
   await user.click(screen.getByRole('button', { name: 'Start Session' }))

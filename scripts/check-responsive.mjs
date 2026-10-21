@@ -17,12 +17,14 @@ import { checkSessionRecovery } from './session-recovery-checks.mjs'
 import { checkErrorRecovery } from './error-recovery-checks.mjs'
 import { checkAccessibility } from './accessibility-checks.mjs'
 import { checkBrowserPersistence } from './browser-persistence-checks.mjs'
+import { checkPerformance } from './performance-checks.mjs'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const recoveryOnly = process.env.SESSION_RECOVERY_ONLY === '1'
 const errorsOnly = process.env.ERROR_RECOVERY_ONLY === '1'
 const accessibilityOnly = process.env.ACCESSIBILITY_ONLY === '1'
 const persistenceOnly = process.env.BROWSER_PERSISTENCE_ONLY === '1'
+const performanceOnly = process.env.PERFORMANCE_ONLY === '1'
 const screenshotDir = process.env.RESPONSIVE_SCREENSHOT_DIR
 const sizes = [
   [1440, 900],
@@ -132,7 +134,7 @@ async function route(path) {
   await until(
     () =>
       evaluate(
-        `location.pathname === ${JSON.stringify(path)} && !!document.querySelector('main h1')`,
+        `location.pathname === ${JSON.stringify(path)} && !!document.querySelector('main h1:not([data-loading])')`,
       ),
     path,
   )
@@ -288,6 +290,7 @@ try {
   const origin = `http://127.0.0.1:${port}`
   server = launch(process.execPath, [
     join(root, 'node_modules/vite/bin/vite.js'),
+    ...(performanceOnly ? ['preview'] : []),
     '--host',
     '127.0.0.1',
     '--port',
@@ -310,10 +313,12 @@ try {
   }
   await send('Page.navigate', { url: origin })
   await until(
-    () => evaluate(`!!document.querySelector('main h1')`),
+    () => evaluate(`!!document.querySelector('main h1:not([data-loading])')`),
     'application',
   )
-  if (persistenceOnly) {
+  if (performanceOnly) {
+    await checkPerformance({ send, evaluate, until, click, origin, socket })
+  } else if (persistenceOnly) {
     await checkBrowserPersistence({
       send,
       evaluate,
@@ -506,12 +511,17 @@ try {
     }
   }
   assert.deepEqual(browserErrors, [])
-  console.log(
-    `Passed ${checks} ${persistenceOnly ? 'browser persistence layouts and clean process restart checks' : accessibilityOnly ? 'accessibility layouts and automated Chrome checks' : errorsOnly ? 'error recovery layouts and injected browser failures' : recoveryOnly ? 'recovery dialog layouts and native browser checks' : 'responsive states'}. Tests used an isolated browser profile; existing application data was not accessed.`,
-  )
+  if (performanceOnly)
+    console.log(
+      'Passed production performance, large-history recovery, and lazy-loading checks. An isolated browser profile was used.',
+    )
+  else
+    console.log(
+      `Passed ${checks} ${persistenceOnly ? 'browser persistence layouts and clean process restart checks' : accessibilityOnly ? 'accessibility layouts and automated Chrome checks' : errorsOnly ? 'error recovery layouts and injected browser failures' : recoveryOnly ? 'recovery dialog layouts and native browser checks' : 'responsive states'}. Tests used an isolated browser profile; existing application data was not accessed.`,
+    )
 } catch (error) {
   console.error(
-    `${persistenceOnly ? 'Browser persistence' : accessibilityOnly ? 'Accessibility' : errorsOnly ? 'Error recovery' : recoveryOnly ? 'Session recovery' : 'Responsive'} check failed (${currentCase}): ${error.stack ?? error}\n${logs.slice(-1500)}`,
+    `${performanceOnly ? 'Performance' : persistenceOnly ? 'Browser persistence' : accessibilityOnly ? 'Accessibility' : errorsOnly ? 'Error recovery' : recoveryOnly ? 'Session recovery' : 'Responsive'} check failed (${currentCase}): ${error.stack ?? error}\n${logs.slice(-1500)}`,
   )
   process.exitCode = 1
 } finally {

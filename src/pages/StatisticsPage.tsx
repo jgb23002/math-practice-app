@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import ButtonLink from '../components/common/ButtonLink'
 import Icon from '../components/common/Icon'
 import StatisticsCard from '../components/statistics/StatisticsCard'
@@ -13,6 +13,7 @@ import './StatisticsPage.css'
 
 const RESET_STATISTICS_CONFIRMATION =
   'Are you sure you want to erase all practice history and statistics?'
+const SESSION_PAGE_SIZE = 20
 
 function StatisticsPage() {
   usePageTitle('Statistics')
@@ -21,7 +22,12 @@ function StatisticsPage() {
     null,
   )
   const { statistics } = progress
-  const recentSessions = getRecentSessions(progress.sessions)
+  const recentSessions = useMemo(
+    () => getRecentSessions(progress.sessions),
+    [progress.sessions],
+  )
+  const [visibleSessionCount, setVisibleSessionCount] =
+    useState(SESSION_PAGE_SIZE)
   const hasHistory =
     statistics.attempted > 0 ||
     progress.attempts.length > 0 ||
@@ -132,7 +138,7 @@ function StatisticsPage() {
           </p>
         ) : (
           <ol className="session-history" aria-label="Recent sessions">
-            {recentSessions.map((item) => (
+            {recentSessions.slice(0, visibleSessionCount).map((item) => (
               <li key={item.id}>
                 <SessionHistoryCard
                   session={item}
@@ -141,6 +147,23 @@ function StatisticsPage() {
               </li>
             ))}
           </ol>
+        )}
+        {recentSessions.length > 0 && (
+          <p role="status" className="statistics-page__note">
+            Showing {Math.min(visibleSessionCount, recentSessions.length)} of{' '}
+            {recentSessions.length} recent sessions.
+          </p>
+        )}
+        {visibleSessionCount < recentSessions.length && (
+          <button
+            type="button"
+            className="button button--secondary"
+            onClick={() =>
+              setVisibleSessionCount((count) => count + SESSION_PAGE_SIZE)
+            }
+          >
+            Show More Sessions
+          </button>
         )}
       </section>
 

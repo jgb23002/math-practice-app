@@ -9,11 +9,11 @@ import './App.css'
 import { useLocation } from 'react-router'
 import ErrorBoundary from '../components/common/ErrorBoundary'
 import ErrorMessage from '../components/common/ErrorMessage'
-import usePracticeConfiguration from '../hooks/usePracticeConfiguration'
+import { useApplicationStatus } from './ApplicationStatusContext'
 
 function AppContent() {
   const { pathname } = useLocation()
-  const { actionError } = usePracticeConfiguration()
+  const { actionError } = useApplicationStatus()
   return (
     <PageContainer>
       {actionError && (

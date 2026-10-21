@@ -29,7 +29,7 @@ export async function checkBrowserPersistence({
     currentSocket.addEventListener('message', handleDialog)
     await send('Page.navigate', { url: `${origin}${path}` })
     await until(
-      () => evaluate(`!!document.querySelector('main h1')`),
+      () => evaluate(`!!document.querySelector('main h1:not([data-loading])')`),
       'reopened browser app',
     )
   }

@@ -17,7 +17,7 @@ import type { StoredProgress } from '../types/persistence'
 
 afterEach(() => vi.restoreAllMocks())
 
-function renderApp(path = '/settings', progress?: StoredProgress) {
+async function renderApp(path = '/settings', progress?: StoredProgress) {
   if (progress)
     expect(saveStoredProgress(createJsonStorage(), progress)).toBe(true)
   const view = render(
@@ -25,6 +25,8 @@ function renderApp(path = '/settings', progress?: StoredProgress) {
       <App />
     </TestRouter>,
   )
+  if (path === '/settings')
+    await screen.findByRole('heading', { name: 'Make it feel like you' })
   return { user: userEvent.setup(), ...view }
 }
 const storedSettings = () =>
@@ -34,7 +36,7 @@ const clearLabel = 'Clear All Application Data'
 test('saves the encouragement preference, applies it to practice, and retains existing progress', async () => {
   const progress = createStatisticsProgress()
   delete progress.settings.feedbackEnabled // A pre-Phase-17 settings record.
-  const { user, unmount } = renderApp('/settings', progress)
+  const { user, unmount } = await renderApp('/settings', progress)
   expect(
     screen.getByRole('checkbox', { name: 'Encouraging messages' }),
   ).toBeChecked()
@@ -50,7 +52,7 @@ test('saves the encouragement preference, applies it to practice, and retains ex
     progress.statistics,
   )
   unmount()
-  const next = renderApp()
+  const next = await renderApp()
   expect(
     screen.getByRole('checkbox', { name: 'Encouraging messages' }),
   ).not.toBeChecked()
@@ -85,7 +87,7 @@ test('saves the encouragement preference, applies it to practice, and retains ex
 })
 
 test('loads safe defaults and saves every visible setting automatically across remounts', async () => {
-  const { user, unmount } = renderApp()
+  const { user, unmount } = await renderApp()
   expect(document.title).toBe('Settings | Math Practice')
   expect(
     screen.getByRole('checkbox', { name: 'Sound effects' }),
@@ -116,7 +118,7 @@ test('loads safe defaults and saves every visible setting automatically across r
     defaultSessionLength: 20,
   })
   unmount()
-  renderApp()
+  await renderApp()
   expect(screen.getByRole('checkbox', { name: 'Sound effects' })).toBeChecked()
   expect(
     screen.getByRole('checkbox', { name: 'Card animation' }),
@@ -148,7 +150,7 @@ test.each([5, 10, 20, 'continuous'] as const)(
       defaultDifficulty: 2,
       defaultSessionLength: sessionLength,
     }
-    const { user } = renderApp('/practice/setup', progress)
+    const { user } = await renderApp('/practice/setup', progress)
     expect(screen.getByRole('checkbox', { name: 'Addition' })).toBeChecked()
     expect(screen.getByRole('checkbox', { name: 'Division' })).not.toBeChecked()
     expect(screen.getByRole('radio', { name: 'Level 2: Easy' })).toBeChecked()
@@ -187,7 +189,7 @@ test('allows session-only overrides, preserves them when editing, and uses defau
       choices: [10, 11, 12, 13],
     }),
   )
-  const { user } = renderApp()
+  const { user } = await renderApp()
   await user.click(screen.getByRole('checkbox', { name: 'Addition' }))
   await user.click(screen.getByRole('checkbox', { name: 'Division' }))
   await user.click(screen.getByRole('radio', { name: 'Level 2: Easy' }))
@@ -236,7 +238,7 @@ test('animation and explanation preferences apply to a revealed card without cha
       choices: [6, 7, 8, 9],
     })
   })
-  const { user } = renderApp('/practice/setup')
+  const { user } = await renderApp('/practice/setup')
   await user.click(screen.getByRole('checkbox', { name: 'Addition' }))
   await user.click(screen.getByRole('button', { name: 'Start Session' }))
   await user.click(screen.getByRole('button', { name: 'Answer 6' }))
@@ -285,11 +287,11 @@ test('animation and explanation preferences apply to a revealed card without cha
   ).toHaveTextContent('8')
 })
 
-test('corrupt settings recover independently from valid practice history', () => {
+test('corrupt settings recover independently from valid practice history', async () => {
   const progress = createStatisticsProgress()
   expect(saveStoredProgress(createJsonStorage(), progress)).toBe(true)
   localStorage.setItem(STORAGE_KEYS.settings, '{broken')
-  renderApp()
+  await renderApp()
   expect(storedSettings()).toEqual(createDefaultSettings())
   expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.attempts)!)).toEqual(
     progress.attempts,
@@ -300,7 +302,7 @@ test('corrupt settings recover independently from valid practice history', () =>
 test('keyboard toggles save preferences and preserve a custom mastery threshold', async () => {
   const progress = createStatisticsProgress()
   progress.settings.masteryThreshold = 5
-  const { user } = renderApp('/settings', progress)
+  const { user } = await renderApp('/settings', progress)
   screen.getByRole('checkbox', { name: 'Show explanations' }).focus()
   await user.keyboard(' ')
   expect(storedSettings()).toMatchObject({
@@ -311,7 +313,7 @@ test('keyboard toggles save preferences and preserve a custom mastery threshold'
 
 test('cancelling Clear All leaves settings, history, and the route unchanged', async () => {
   const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
-  const { user } = renderApp('/settings', createStatisticsProgress())
+  const { user } = await renderApp('/settings', createStatisticsProgress())
   const snapshot = JSON.stringify(localStorage)
   const button = screen.getByRole('button', { name: clearLabel })
   expect(button).toHaveAccessibleDescription(/permanently erases/)
@@ -329,7 +331,7 @@ test('confirmed Clear All erases progress and mistake patterns, restores default
   vi.spyOn(window, 'confirm').mockReturnValue(true)
   const progress = createStatisticsProgress()
   progress.mistakePatterns = [createMistakePattern()]
-  const { user, unmount } = renderApp('/settings', progress)
+  const { user, unmount } = await renderApp('/settings', progress)
   localStorage.setItem('other.app.preference', 'stay')
   screen.getByRole('button', { name: clearLabel }).focus()
   await user.keyboard('{Enter}')
@@ -349,7 +351,7 @@ test('confirmed Clear All erases progress and mistake patterns, restores default
   ).toEqual([])
   expect(localStorage.getItem('other.app.preference')).toBe('stay')
   unmount()
-  renderApp()
+  await renderApp()
   expect(storedSettings()).toEqual(createDefaultSettings())
   expect(
     screen.getByRole('checkbox', { name: 'Sound effects' }),
@@ -358,9 +360,9 @@ test('confirmed Clear All erases progress and mistake patterns, restores default
   expect(screen.getByRole('radio', { name: '10 questions' })).toBeChecked()
 })
 
-test('rapid Clear All clicks ask once and remove each application key once', () => {
+test('rapid Clear All clicks ask once and remove each application key once', async () => {
   const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
-  renderApp('/settings', createStatisticsProgress())
+  await renderApp('/settings', createStatisticsProgress())
   const remove = vi.spyOn(Storage.prototype, 'removeItem')
   const button = screen.getByRole('button', { name: clearLabel })
   act(() => {
@@ -379,7 +381,7 @@ test('rapid Clear All clicks ask once and remove each application key once', () 
 
 test('partial deletion keeps the page open, blocks autosaves, and allows an explicit retry', async () => {
   vi.spyOn(window, 'confirm').mockReturnValue(true)
-  const { user } = renderApp('/settings', createStatisticsProgress())
+  const { user } = await renderApp('/settings', createStatisticsProgress())
   const original = Storage.prototype.removeItem
   const remove = vi
     .spyOn(Storage.prototype, 'removeItem')

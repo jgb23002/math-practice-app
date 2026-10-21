@@ -304,6 +304,7 @@ export function transitionPracticeSession(
     if (
       action.questionId !== question.id ||
       session.isAnswerRevealed ||
+      session.selectedAnswer === action.answer ||
       !question.choices.includes(action.answer)
     )
       return session

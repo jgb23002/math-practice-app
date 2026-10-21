@@ -147,7 +147,7 @@ test.each([
   const link = screen.getByRole('link', { name: label })
   expect(link).toHaveAttribute('href', route)
   await user.click(link)
-  expect(screen.getByRole('heading', { name: heading })).toBeVisible()
+  expect(await screen.findByRole('heading', { name: heading })).toBeVisible()
   expect(context.dispatchSession).not.toHaveBeenCalled()
   expect(context.restartSession).not.toHaveBeenCalled()
   if (label === 'Change Settings') {

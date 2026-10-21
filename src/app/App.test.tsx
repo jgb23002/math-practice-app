@@ -56,11 +56,11 @@ test.each([
   ['/settings', 'Make it feel like you', 'Settings'],
 ])(
   'renders %s with shared navigation and the correct active section',
-  (path, heading, activeLink) => {
+  async (path, heading, activeLink) => {
     renderApp(path)
 
     expect(
-      within(screen.getByRole('main')).getByRole('heading', {
+      await within(screen.getByRole('main')).findByRole('heading', {
         level: 1,
         name: heading,
       }),
@@ -92,7 +92,7 @@ test.each([
     )
 
     expect(
-      screen.getByRole('heading', { name: heading, level: 1 }),
+      await screen.findByRole('heading', { name: heading, level: 1 }),
     ).toBeVisible()
     expect(screen.getByRole('main')).toHaveFocus()
     expect(document.title).toBe(`${title} | Math Practice`)
@@ -132,7 +132,7 @@ test('keeps navigation usable between settings and home', async () => {
 
   await user.click(within(navigation).getByRole('link', { name: 'Settings' }))
   expect(
-    screen.getByRole('heading', { name: 'Make it feel like you' }),
+    await screen.findByRole('heading', { name: 'Make it feel like you' }),
   ).toBeVisible()
   await user.click(screen.getByRole('link', { name: 'Math Practice home' }))
   expect(screen.getByRole('link', { name: 'Start Practice' })).toBeVisible()

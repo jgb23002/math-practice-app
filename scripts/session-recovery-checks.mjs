@@ -26,7 +26,7 @@ export async function checkSessionRecovery({
     until(
       () =>
         evaluate(
-          `location.pathname === ${JSON.stringify(expected)} && !!document.querySelector('main h1')`,
+          `location.pathname === ${JSON.stringify(expected)} && !!document.querySelector('main h1:not([data-loading])')`,
         ),
       expected,
     )
@@ -61,7 +61,7 @@ export async function checkSessionRecovery({
       await until(
         () =>
           evaluate(
-            `!window.__oldRecoveryDocument && !!document.querySelector('main h1')`,
+            `!window.__oldRecoveryDocument && !!document.querySelector('main h1:not([data-loading])')`,
           ),
         'refreshed application',
       )

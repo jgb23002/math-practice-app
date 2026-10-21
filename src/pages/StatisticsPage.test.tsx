@@ -13,10 +13,56 @@ import { createMistakePattern } from '../test/mistakeFixtures'
 import { createStatisticsProgress } from '../test/statisticsFixtures'
 import { emptyProgress } from '../test/storageFixtures'
 import type { StoredProgress } from '../types/persistence'
+import { largeHistoryFixture } from '../test/largeHistoryFixture'
+import { calculateStatistics } from '../utils/statistics'
 
 afterEach(() => vi.restoreAllMocks())
 
-function renderStatistics(
+test('shows 20 newest sessions at a time and preserves all 5,000 attempts and totals when expanding', async () => {
+  const history = largeHistoryFixture()
+  const progress = {
+    ...emptyProgress(),
+    ...history,
+    statistics: calculateStatistics(history.attempts),
+  }
+  const { user } = await renderStatistics(progress)
+  const saved = JSON.stringify(localStorage)
+  const rows = () =>
+    within(screen.getByRole('list', { name: 'Recent sessions' })).getAllByRole(
+      'article',
+    )
+  expect(rows()).toHaveLength(20)
+  const newestFirst = [...history.sessions].reverse()
+  for (const visible of [20, 40, 60, 80, 100]) {
+    expect(rows()).toHaveLength(visible)
+    expect(rows().map((row) => row.querySelector('time')?.dateTime)).toEqual(
+      newestFirst.slice(0, visible).map((session) => session.startedAt),
+    )
+    expect(
+      screen.getByText(`Showing ${visible} of 100 recent sessions.`),
+    ).toBeVisible()
+    if (visible < 100)
+      await user.click(
+        screen.getByRole('button', { name: 'Show More Sessions' }),
+      )
+  }
+  expect(
+    screen.queryByRole('button', { name: 'Show More Sessions' }),
+  ).not.toBeInTheDocument()
+  expect(JSON.stringify(localStorage)).toBe(saved)
+  expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.attempts)!)).toHaveLength(
+    5000,
+  )
+  expectMetrics(
+    screen.getByRole('region', { name: 'All your practice' }),
+    5000,
+    progress.statistics.correct,
+    progress.statistics.incorrect,
+    `${Math.round((progress.statistics.correct / 5000) * 100)}%`,
+  )
+})
+
+async function renderStatistics(
   progress: StoredProgress = createStatisticsProgress(),
 ) {
   expect(saveStoredProgress(createJsonStorage(), progress)).toBe(true)
@@ -25,6 +71,7 @@ function renderStatistics(
       <App />
     </TestRouter>,
   )
+  await screen.findByRole('heading', { name: 'See how you grow' })
   return { user: userEvent.setup(), ...view }
 }
 
@@ -47,7 +94,7 @@ function expectMetrics(
 }
 
 test('shows a welcoming empty overview, all eight empty groups, and empty recent history', async () => {
-  const { user } = renderStatistics(emptyProgress())
+  const { user } = await renderStatistics(emptyProgress())
   expectMetrics(
     screen.getByRole('region', { name: 'All your practice' }),
     0,
@@ -87,8 +134,8 @@ test('shows a welcoming empty overview, all eight empty groups, and empty recent
   ).toBeVisible()
 })
 
-test('shows overall counts and every operation and difficulty with independent accuracy', () => {
-  renderStatistics()
+test('shows overall counts and every operation and difficulty with independent accuracy', async () => {
+  await renderStatistics()
   expectMetrics(
     screen.getByRole('region', { name: 'All your practice' }),
     8,
@@ -120,8 +167,8 @@ test('shows overall counts and every operation and difficulty with independent a
   )
 })
 
-test('shows recent sessions newest first with dates, operation names, difficulty, totals, and accuracy', () => {
-  renderStatistics()
+test('shows recent sessions newest first with dates, operation names, difficulty, totals, and accuracy', async () => {
+  await renderStatistics()
   const list = screen.getByRole('list', { name: 'Recent sessions' })
   const rows = within(list).getAllByRole('article')
   expect(rows.map((row) => row.querySelector('time')?.dateTime)).toEqual([
@@ -141,11 +188,11 @@ test('shows recent sessions newest first with dates, operation names, difficulty
   }
 })
 
-test('preserves aggregate history even if attempt details are unavailable', () => {
+test('preserves aggregate history even if attempt details are unavailable', async () => {
   const progress = createStatisticsProgress()
   progress.attempts = []
   progress.sessions = []
-  renderStatistics(progress)
+  await renderStatistics(progress)
   expectMetrics(
     screen.getByRole('region', { name: 'All your practice' }),
     8,
@@ -159,12 +206,12 @@ test('preserves aggregate history even if attempt details are unavailable', () =
   expect(screen.getByRole('button', { name: 'Reset Statistics' })).toBeEnabled()
 })
 
-test('handles a completed continuous session with no recorded answers', () => {
+test('handles a completed continuous session with no recorded answers', async () => {
   const progress = emptyProgress()
   progress.sessions = [
     createCompletedSession([], { sessionLength: 'continuous' }),
   ]
-  renderStatistics(progress)
+  await renderStatistics(progress)
   const row = within(
     screen.getByRole('list', { name: 'Recent sessions' }),
   ).getByRole('article')
@@ -178,7 +225,7 @@ test('handles a completed continuous session with no recorded answers', () => {
 
 test('cancelling the explicit reset confirmation leaves data and the page unchanged', async () => {
   const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
-  const { user } = renderStatistics()
+  const { user } = await renderStatistics()
   const before = JSON.stringify(localStorage)
   await user.click(screen.getByRole('button', { name: 'Reset Statistics' }))
   expect(confirm).toHaveBeenCalledExactlyOnceWith(
@@ -199,7 +246,7 @@ test('keyboard-confirmed reset clears history persistently while preserving ever
   vi.spyOn(window, 'confirm').mockReturnValue(true)
   const progress = createStatisticsProgress()
   progress.mistakePatterns = [createMistakePattern()]
-  const { user, unmount } = renderStatistics(progress)
+  const { user, unmount } = await renderStatistics(progress)
   localStorage.setItem('other.preference', 'stay')
   const patterns = localStorage.getItem(STORAGE_KEYS.mistakePatterns)
   const settings = localStorage.getItem(STORAGE_KEYS.settings)
@@ -253,7 +300,7 @@ test('keyboard-confirmed reset clears history persistently while preserving ever
 
 test('a failed reset stays usable, explains that saved history may return, and supports retry', async () => {
   vi.spyOn(window, 'confirm').mockReturnValue(true)
-  const { user } = renderStatistics()
+  const { user } = await renderStatistics()
   const originalAttempts = localStorage.getItem(STORAGE_KEYS.attempts)
   const fail = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
     throw new DOMException('Full', 'QuotaExceededError')

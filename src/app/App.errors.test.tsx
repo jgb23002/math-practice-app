@@ -96,7 +96,7 @@ test.each([
     localStorage.setItem('unrelated.data', 'keep')
     const { user } = mount('/statistics')
     expect(
-      screen.getByRole('heading', { name: 'See how you grow' }),
+      await screen.findByRole('heading', { name: 'See how you grow' }),
     ).toBeVisible()
     expect(
       screen.getByText(/Some saved progress couldn’t be read/),
@@ -314,7 +314,7 @@ test('a failed end action does not confirm navigation until ending succeeds', as
   )
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   expect(
-    screen.getByRole('heading', { name: 'Make it feel like you' }),
+    await screen.findByRole('heading', { name: 'Make it feel like you' }),
   ).toBeVisible()
   expect(localStorage.getItem(STORAGE_KEYS.activeSession)).toBeNull()
 })

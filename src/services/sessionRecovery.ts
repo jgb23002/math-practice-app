@@ -36,25 +36,31 @@ export function resolveSessionRecovery(
       [saved.currentQuestion, saved.previousQuestion].find(
         (q) => q?.id === last?.questionId,
       ) ?? null
-    const session = resumePracticeSession(
-      {
-        ...saved,
-        attempts: known,
-        attempted: known.length,
-        correct: known.filter((a) => a.selfReportedCorrect).length,
-        incorrect: known.filter((a) => !a.selfReportedCorrect).length,
-        currentQuestionIndex: known.length,
-        previousQuestion: previous,
-        currentQuestion: null,
-        selectedAnswer: null,
-        isAnswerRevealed: false,
-      },
-      {
-        mistakePatterns: durable.mistakePatterns,
-        masteryThreshold: durable.settings.masteryThreshold,
-      },
+    const reconciled = {
+      ...saved,
+      attempts: known,
+      attempted: known.length,
+      correct: known.filter((a) => a.selfReportedCorrect).length,
+      incorrect: known.filter((a) => !a.selfReportedCorrect).length,
+      currentQuestionIndex: known.length,
+      previousQuestion: previous,
+      currentQuestion: null,
+      selectedAnswer: null,
+      isAnswerRevealed: false,
+      questionError: 'Let’s get your next question ready.',
+    }
+    if (
+      saved.sessionLength !== 'continuous' &&
+      known.length >= saved.sessionLength
     )
-    return { progress: durable, session }
+      return { progress: durable, session: resumePracticeSession(reconciled) }
+    // Loading/reconciling storage can run in a React initializer. Generate the
+    // next card from the provider's recovery effect, never during rendering.
+    return {
+      progress: durable,
+      session: reconciled,
+      needsQuestionGeneration: true,
+    }
   }
   // Divergent records cannot safely be replayed or replaced by an older card.
   if (

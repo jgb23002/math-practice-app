@@ -834,26 +834,28 @@ Verification: see [testing-audit.md](testing-audit.md) for the full requirement 
 
 ### 83. Optimize React Rendering
 
-- [ ] Identify unnecessary component re-renders.
-- [ ] Memoize expensive statistics calculations.
-- [ ] Keep question generation outside render logic.
-- [ ] Avoid unnecessary global state updates.
+- [x] Identify unnecessary component re-renders.
+- [x] Memoize expensive statistics calculations.
+- [x] Keep question generation outside render logic.
+- [x] Avoid unnecessary global state updates.
 
 ### 84. Manage Large Practice Histories
 
-- [ ] Test with several thousand attempts.
-- [ ] Measure local-storage usage.
-- [ ] Limit the number of detailed recent sessions.
+- [x] Test with several thousand attempts.
+- [x] Measure local-storage usage.
+- [x] Limit the number of detailed recent sessions.
 - [ ] Summarize older attempt records if necessary.
 - [ ] Preserve aggregate statistics when archiving details.
 
 ### 85. Improve Loading Performance
 
-- [ ] Measure the initial bundle size.
-- [ ] Lazy-load statistics and settings pages.
-- [ ] Remove unused dependencies.
-- [ ] Optimize fonts and images.
+- [x] Measure the initial bundle size.
+- [x] Lazy-load statistics and settings pages.
+- [x] Remove unused dependencies.
+- [x] Optimize fonts and images.
 - [ ] Test on slower devices.
+
+Phase 21 verification: See [performance measurements](performance.md). Dependency and font/image audits found no unused packages or external asset downloads; obsolete placeholder code/styles were removed. No attempts needed archiving in the tested workload, so both conditional archiving tasks remain unchecked. Chrome 4x CPU throttling was tested; physical slower-device testing remains unchecked.
 
 ---
 

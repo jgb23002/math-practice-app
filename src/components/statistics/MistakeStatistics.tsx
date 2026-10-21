@@ -1,4 +1,4 @@
-import { useId, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { operationOptions } from '../../config/practice'
 import type { MistakePattern } from '../../types/mistake'
 import type { PracticeAttempt } from '../../types/session'
@@ -22,7 +22,10 @@ function MistakeStatistics({
   const factsHeadingId = useId()
   const panelId = useId()
   const [view, setView] = useState<'active' | 'mastered'>('active')
-  const stats = calculateMistakeStatistics(patterns, attempts)
+  const stats = useMemo(
+    () => calculateMistakeStatistics(patterns, attempts),
+    [patterns, attempts],
+  )
   const visible =
     view === 'active' ? stats.activePatterns : stats.masteredPatterns
   const operationNames = operationOptions

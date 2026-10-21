@@ -1,8 +1,8 @@
-import usePracticeConfiguration from '../../hooks/usePracticeConfiguration'
+import { useApplicationStatus } from '../../app/ApplicationStatusContext'
 import './StorageWarning.css'
 
 function StorageWarning() {
-  const { storageWarning } = usePracticeConfiguration()
+  const { storageWarning } = useApplicationStatus()
   return storageWarning ? (
     <p className="storage-warning" role="status" aria-live="polite">
       {storageWarning}

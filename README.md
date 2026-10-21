@@ -28,6 +28,10 @@ and offers friendly retry/home actions when a page or practice step cannot finis
 Phase 20 expands the automated coverage and adds reproducible Chrome accessibility
 and browser-restart checks. Human screen-reader testing and accessibility-result
 review remain unfinished; see the [testing audit](docs/testing-audit.md).
+Phase 21 reduces redundant session saves, preserves history references during
+card interactions, memoizes statistics, and loads Settings/Statistics on demand.
+Recent session history expands in groups of 20. All attempt details are retained.
+See the [performance measurements and data-management review](docs/performance.md).
 
 ## Setup
 
@@ -69,6 +73,10 @@ Other commands:
   results are reported separately for human review.
 - `npm run check:browser-persistence`: close/relaunch Chrome three times using the
   same temporary profile and verify live cards, mastery, completed history, and reset.
+- `npm run check:performance`: after `npm run build`, measure the production build
+  with 5,000 stored attempts, normal/4× throttled CPU, and recovery after four new
+  self-reports. Verify deferred bundles and history limits. Set `PERFORMANCE_REPORT`
+  to save the detailed JSON measurements. Requires local Chrome/Chromium.
 
 See [the responsive checks and visual changes](docs/responsive-checks.md) for
 screen sizes, optional screenshots, and manual device checks. The remaining
@@ -80,6 +88,8 @@ retry limits, fallback policies, data preservation, and test simulations.
 The [Phase 20 testing audit](docs/testing-audit.md) maps requirements to tests and
 separates passed, fixed, and unexecuted checks. All browser scripts use automated
 Chrome/Chromium checks; they do not establish manual or cross-browser verification.
+The performance script serves the production build; the other browser scripts
+serve the development build.
 
 The accessibility script writes its detailed report to
 `/tmp/math-practice-accessibility.json`. Set `ACCESSIBILITY_REPORT_PATH` to change

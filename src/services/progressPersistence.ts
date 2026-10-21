@@ -169,6 +169,14 @@ export function saveStoredProgress(
   storage: JsonStorage,
   progress: StoredProgress,
 ) {
+  return writeProgress(storage, progress, false)
+}
+
+function writeProgress(
+  storage: JsonStorage,
+  progress: StoredProgress,
+  validated: boolean,
+) {
   const version = storage.read(STORAGE_KEYS.version, isVersion)
   if (
     version.status !== 'missing' &&
@@ -177,15 +185,15 @@ export function saveStoredProgress(
     return false
   // Keep categories independent: one failed write must not prevent the others.
   const results = [
-    isAppSettings(progress.settings) &&
+    (validated || isAppSettings(progress.settings)) &&
       storage.write(STORAGE_KEYS.settings, progress.settings).ok,
-    isSessionHistory(progress.sessions) &&
+    (validated || isSessionHistory(progress.sessions)) &&
       storage.write(STORAGE_KEYS.sessions, progress.sessions).ok,
-    isAttemptHistory(progress.attempts) &&
+    (validated || isAttemptHistory(progress.attempts)) &&
       storage.write(STORAGE_KEYS.attempts, progress.attempts).ok,
-    isMistakePatternHistory(progress.mistakePatterns) &&
+    (validated || isMistakePatternHistory(progress.mistakePatterns)) &&
       storage.write(STORAGE_KEYS.mistakePatterns, progress.mistakePatterns).ok,
-    isAppStatistics(progress.statistics) &&
+    (validated || isAppStatistics(progress.statistics)) &&
       storage.write(STORAGE_KEYS.statistics, progress.statistics).ok,
   ]
   if (!results.every(Boolean)) return false
@@ -225,6 +233,9 @@ export function createProgressPersistence(storage: JsonStorage) {
   return {
     initial,
     recoveredSession: restored.session?.isActive ? restored.session : null,
+    needsQuestionGeneration:
+      'needsQuestionGeneration' in restored &&
+      restored.needsQuestionGeneration === true,
     getWarning: () => warning,
     subscribe: (listener: () => void) => {
       listeners.add(listener)
@@ -243,6 +254,7 @@ export function createProgressPersistence(storage: JsonStorage) {
       session: PracticeSessionState | null,
     ) => {
       if (!writable) return false
+      let validated = false
       // Write the complete checkpoint before any independent categories. If a
       // later category write fails, recovery uses this consistent snapshot.
       if (session?.isActive || hasRecovery) {
@@ -259,8 +271,12 @@ export function createProgressPersistence(storage: JsonStorage) {
           return false
         }
         hasRecovery = true
+        validated = true
       }
-      const saved = saveStoredProgress(storage, progress)
+      // A checkpoint already validates every progress category. Reuse that
+      // result within this synchronous save, without caching mutable objects
+      // across calls or weakening validation for independent category saves.
+      const saved = writeProgress(storage, progress, validated)
       const cleared =
         !session?.isActive && hasRecovery && saved
           ? storage.remove(STORAGE_KEYS.activeSession).ok
@@ -323,7 +339,8 @@ export function withSessionProgress(
     ]
       .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
       .slice(0, MAX_RECENT_SESSIONS),
-    attempts: [...progress.attempts, ...added],
+    attempts:
+      added.length > 0 ? [...progress.attempts, ...added] : progress.attempts,
     mistakePatterns:
       added.length > 0
         ? recordMistakes(

@@ -599,11 +599,6 @@
   text-align: center;
 }
 
-.placeholder-page > .eyebrow {
-  justify-content: center;
-  margin-bottom: 1rem;
-}
-
 .placeholder-card {
   display: flex;
   flex-direction: column;
@@ -613,32 +608,6 @@
   border-radius: 2rem;
   background: #fffefb;
   box-shadow: 0 8px 0 #eef0e7;
-}
-
-.placeholder-icon {
-  display: grid;
-  place-items: center;
-  width: 84px;
-  height: 84px;
-  border-radius: 26px;
-  color: var(--blue);
-  background: #e8edfc;
-  transform: rotate(-5deg);
-}
-
-.placeholder-icon .icon {
-  width: 2.25rem;
-  height: 2.25rem;
-}
-
-.coming-soon {
-  margin-top: 1.5rem;
-  padding: 0.3rem 0.8rem;
-  border-radius: 2rem;
-  color: #6b5727;
-  background: #faf0d2;
-  font-size: 0.75rem;
-  font-weight: 800;
 }
 
 .placeholder-card h1 {
@@ -651,28 +620,6 @@
   max-width: 30rem;
   margin-top: 1rem;
   color: var(--muted);
-}
-
-.placeholder-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 1rem;
-  margin-top: 2rem;
-}
-
-.supportive-note {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  margin-top: 2rem;
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-
-.supportive-note .icon {
-  color: #a55a43;
 }
 
 .lost-numbers {
@@ -859,14 +806,5 @@
 
   .placeholder-page {
     margin-block: 0 1rem;
-  }
-
-  .placeholder-actions,
-  .placeholder-actions .button {
-    width: 100%;
-  }
-
-  .supportive-note {
-    align-items: flex-start;
   }
 }

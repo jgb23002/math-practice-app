@@ -1,0 +1,320 @@
+{
+  "browser": "Chrome/155.0.8059.85",
+  "history": {
+    "attempts": 5000,
+    "sessions": 100,
+    "bytesUTF16": 3057284
+  },
+  "loads": [
+    {
+      "path": "/",
+      "cpuRate": 1,
+      "samples": [
+        {
+          "readyMs": 30.599999994039536,
+          "sessionCards": 0,
+          "attempted": 5000
+        },
+        {
+          "readyMs": 28.5,
+          "sessionCards": 0,
+          "attempted": 5000
+        },
+        {
+          "readyMs": 28.799999997019768,
+          "sessionCards": 0,
+          "attempted": 5000
+        },
+        {
+          "readyMs": 28.099999994039536,
+          "sessionCards": 0,
+          "attempted": 5000
+        },
+        {
+          "readyMs": 31.200000002980232,
+          "sessionCards": 0,
+          "attempted": 5000
+        }
+      ]
+    },
+    {
+      "path": "/",
+      "cpuRate": 4,
+      "samples": [
+        {
+          "readyMs": 71.80000001192093,
+          "sessionCards": 0,
+          "attempted": 5000
+        },
+        {
+          "readyMs": 68.30000001192093,
+          "sessionCards": 0,
+          "attempted": 5000
+        },
+        {
+          "readyMs": 71.20000000298023,
+          "sessionCards": 0,
+          "attempted": 5000
+        },
+        {
+          "readyMs": 71.70000000298023,
+          "sessionCards": 0,
+          "attempted": 5000
+        },
+        {
+          "readyMs": 68.09999999403954,
+          "sessionCards": 0,
+          "attempted": 5000
+        }
+      ]
+    },
+    {
+      "path": "/statistics",
+      "cpuRate": 1,
+      "samples": [
+        {
+          "readyMs": 33.79999999701977,
+          "sessionCards": 100,
+          "attempted": 5000
+        },
+        {
+          "readyMs": 32,
+          "sessionCards": 100,
+          "attempted": 5000
+        },
+        {
+          "readyMs": 30.30000001192093,
+          "sessionCards": 100,
+          "attempted": 5000
+        },
+        {
+          "readyMs": 30.900000005960464,
+          "sessionCards": 100,
+          "attempted": 5000
+        },
+        {
+          "readyMs": 33.20000000298023,
+          "sessionCards": 100,
+          "attempted": 5000
+        }
+      ]
+    },
+    {
+      "path": "/statistics",
+      "cpuRate": 4,
+      "samples": [
+        {
+          "readyMs": 83.6000000089407,
+          "sessionCards": 100,
+          "attempted": 5000
+        },
+        {
+          "readyMs": 84.3999999910593,
+          "sessionCards": 100,
+          "attempted": 5000
+        },
+        {
+          "readyMs": 85,
+          "sessionCards": 100,
+          "attempted": 5000
+        },
+        {
+          "readyMs": 90.5,
+          "sessionCards": 100,
+          "attempted": 5000
+        },
+        {
+          "readyMs": 105.70000000298023,
+          "sessionCards": 100,
+          "attempted": 5000
+        }
+      ]
+    }
+  ],
+  "initialResources": [
+    {
+      "name": "/assets/index-DtsoTWMw.css",
+      "bytes": 8377
+    },
+    {
+      "name": "/assets/index-MMwcKo6F.js",
+      "bytes": 124412
+    }
+  ],
+  "interactionsAt4xCPU": {
+    "samples": [
+      {
+        "selectMs": 82,
+        "revealMs": 82.40000000596046,
+        "reportMs": 102.3999999910593
+      },
+      {
+        "selectMs": 74.79999999701977,
+        "revealMs": 79.5,
+        "reportMs": 77.79999999701977
+      },
+      {
+        "selectMs": 78.79999999701977,
+        "revealMs": 80.20000000298023,
+        "reportMs": 81.79999999701977
+      },
+      {
+        "selectMs": 75.8999999910593,
+        "revealMs": 77.29999999701977,
+        "reportMs": 84.09999999403954
+      },
+      {
+        "selectMs": 74.3999999910593,
+        "revealMs": 77.29999999701977
+      }
+    ],
+    "warning": null,
+    "writes": [
+      {
+        "key": "mathPractice.activeSession",
+        "chars": 1529074,
+        "ms": 9.700000002980232
+      },
+      {
+        "key": "mathPractice.activeSession",
+        "chars": 1529073,
+        "ms": 8.799999997019768
+      },
+      {
+        "key": "mathPractice.activeSession",
+        "chars": 1529971,
+        "ms": 13.900000005960464
+      },
+      {
+        "key": "mathPractice.sessions",
+        "chars": 26188,
+        "ms": 0
+      },
+      {
+        "key": "mathPractice.attempts",
+        "chars": 1501834,
+        "ms": 18
+      },
+      {
+        "key": "mathPractice.statistics",
+        "chars": 544,
+        "ms": 0
+      },
+      {
+        "key": "mathPractice.activeSession",
+        "chars": 1529969,
+        "ms": 4.4000000059604645
+      },
+      {
+        "key": "mathPractice.activeSession",
+        "chars": 1529968,
+        "ms": 5.5
+      },
+      {
+        "key": "mathPractice.activeSession",
+        "chars": 1530667,
+        "ms": 5.299999997019768
+      },
+      {
+        "key": "mathPractice.sessions",
+        "chars": 26188,
+        "ms": 0
+      },
+      {
+        "key": "mathPractice.attempts",
+        "chars": 1502182,
+        "ms": 5
+      },
+      {
+        "key": "mathPractice.statistics",
+        "chars": 544,
+        "ms": 0
+      },
+      {
+        "key": "mathPractice.activeSession",
+        "chars": 1530665,
+        "ms": 8.900000005960464
+      },
+      {
+        "key": "mathPractice.activeSession",
+        "chars": 1530664,
+        "ms": 11.700000002980232
+      },
+      {
+        "key": "mathPractice.activeSession",
+        "chars": 1531362,
+        "ms": 5.199999988079071
+      },
+      {
+        "key": "mathPractice.sessions",
+        "chars": 26188,
+        "ms": 0.4000000059604645
+      },
+      {
+        "key": "mathPractice.attempts",
+        "chars": 1502530,
+        "ms": 8.200000002980232
+      },
+      {
+        "key": "mathPractice.statistics",
+        "chars": 544,
+        "ms": 0
+      },
+      {
+        "key": "mathPractice.activeSession",
+        "chars": 1531359,
+        "ms": 5
+      },
+      {
+        "key": "mathPractice.activeSession",
+        "chars": 1531358,
+        "ms": 8.399999991059303
+      },
+      {
+        "key": "mathPractice.activeSession",
+        "chars": 1532055,
+        "ms": 4.5999999940395355
+      },
+      {
+        "key": "mathPractice.sessions",
+        "chars": 26188,
+        "ms": 0
+      },
+      {
+        "key": "mathPractice.attempts",
+        "chars": 1502877,
+        "ms": 4.5999999940395355
+      },
+      {
+        "key": "mathPractice.statistics",
+        "chars": 544,
+        "ms": 0
+      },
+      {
+        "key": "mathPractice.activeSession",
+        "chars": 1532052,
+        "ms": 5.0999999940395355
+      },
+      {
+        "key": "mathPractice.activeSession",
+        "chars": 1532051,
+        "ms": 4.799999997019768
+      }
+    ],
+    "activeBytes": 6124062,
+    "recoveredRevealed": true,
+    "retainedAttempts": 5004
+  },
+  "bundle": [
+    {
+      "name": "index-DtsoTWMw.css",
+      "bytes": 40496,
+      "gzipBytes": 8377
+    },
+    {
+      "name": "index-MMwcKo6F.js",
+      "bytes": 412573,
+      "gzipBytes": 124412
+    }
+  ]
+}

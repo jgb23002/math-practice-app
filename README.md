@@ -6,15 +6,15 @@ TypeScript, and Vite. Requirements and the development checklist are in
 
 ## Current scope
 
-Phases 1–14 establish the development tools, shared domain types, responsive
+Phases 1–15 establish the development tools, shared domain types, responsive
 application layout, home page, routing, practice configuration, and a tested
 question-generation service with multiple-choice answers and interactive cards.
 Students can configure practice, select an answer, flip a card, and mark how they
 did. Sessions advance automatically, keep self-reported totals and attempts in
 memory, and finish with a session summary and navigation actions. Settings,
 session history, attempts, and aggregate totals persist in browser local storage.
-The statistics page shows overall, operation, difficulty, and recent-session
-performance with a confirmed reset. Application settings control sound,
+The statistics page shows overall, operation, difficulty, recent-session, and
+mistake/mastery statistics with a confirmed reset. Application settings control sound,
 animation, explanations, and practice defaults. Self-reported mistakes create
 deduplicated, persistent patterns. A similar-question service generates related
 review questions within the original difficulty. Personalized review sessions
@@ -458,6 +458,45 @@ aggregate history, populated/empty components, confirmation cancellation and
 acceptance, keyboard activation, durable reset, preference preservation, save
 failure/retry, live updates, and invalidation of active-session callbacks.
 
+## Advanced mistake statistics
+
+The statistics page includes a **Mistakes and mastery** section with active and
+mastered pattern counts, similar review questions attempted, and correct review
+answers. `src/utils/mistakeStatistics.ts` derives these values from validated saved
+records without introducing another persisted cache. Review totals count attempts
+with `source: 'mistake-review'`, including legacy unattributed history. Correct
+review answers use `selfReportedCorrect`, regardless of the selected option.
+Current mastery counters are not used as historical review totals because an
+incorrect report resets those counters.
+
+The most frequently missed operation uses the sum of saved `incorrectCount`
+values for each original operation, including mastered patterns. An incorrect
+inverse review therefore contributes to its original pattern's operation. All
+operations tied for the highest positive count are shown; empty data has no
+winner. Counts are not added again from attempt history.
+
+**Active** and **Mastered** buttons show separate lists of frequently missed
+number facts. Each list sorts numerically by incorrect count, descending. Equal
+counts share a competition rank (`1, 1, 3`); recent misses appear first within a
+tie, followed by stable operation, operand, difficulty, and ID ordering. Facts at
+different difficulty levels remain separate patterns. Each card includes the
+equation and correct answer, difficulty, incorrect count, local last-missed
+date/time, recorded mastery status, and an accessible progress bar.
+
+Progress uses the configured mastery threshold and preserves the recorded status
+when that threshold changes. Mastered records remain complete; active records do
+not become mastered merely by viewing statistics. Progress bars stay bounded
+while showing the true saved correct-review count. Both views provide friendly
+empty states, and the review action opens the existing Mistake Review setup.
+
+Reset Statistics clears review attempt totals with the other attempt history;
+saved patterns, their miss counts, and mastery remain. The page explains this
+distinction. Clear All Application Data on Settings erases those saved patterns.
+The new section uses the existing card styles, colors, typography, and responsive
+grids. Tests cover aggregation, self-report semantics, inverse attribution,
+sorting and ties, status separation, thresholds, empty states, live mastery
+transitions, keyboard filters, and reset/reload behavior.
+
 ## Application settings
 
 The settings page saves sound, card-animation, explanation visibility, default
@@ -682,7 +721,7 @@ navigation, early completion, and fixed-length review restarts.
 - `session.ts`: sessions, attempts, runtime state, summaries, and session actions.
 - `practiceConfiguration.ts`: validated choices passed from setup to session state.
 - `mistake.ts`: mistake patterns and mastery progress.
-- `statistics.ts`: overall, operation, and difficulty totals.
+- `statistics.ts`: overall/operation/difficulty totals and derived mistake rankings.
 - `settings.ts`: application preferences, practice defaults, and mastery threshold.
 - `persistence.ts`: the independently stored progress categories.
 

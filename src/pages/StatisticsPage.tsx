@@ -4,6 +4,7 @@ import Icon from '../components/common/Icon'
 import StatisticsCard from '../components/statistics/StatisticsCard'
 import StatisticsMetrics from '../components/statistics/StatisticsMetrics'
 import SessionHistoryCard from '../components/statistics/SessionHistoryCard'
+import MistakeStatistics from '../components/statistics/MistakeStatistics'
 import { difficultyOptions, operationOptions } from '../config/practice'
 import usePageTitle from '../hooks/usePageTitle'
 import usePracticeConfiguration from '../hooks/usePracticeConfiguration'
@@ -114,6 +115,12 @@ function StatisticsPage() {
         </div>
       </section>
 
+      <MistakeStatistics
+        patterns={progress.mistakePatterns}
+        attempts={progress.attempts}
+        masteryThreshold={progress.settings.masteryThreshold}
+      />
+
       <section aria-labelledby="statistics-recent-heading">
         <h2 id="statistics-recent-heading">Recent sessions</h2>
         <p className="statistics-page__note">
@@ -145,7 +152,7 @@ function StatisticsPage() {
           <h2 id="statistics-reset-heading">Manage your practice history</h2>
           <p id="statistics-reset-explanation">
             Reset clears practice history and ends any current session. Your
-            settings will stay.
+            settings, saved mistake patterns, and mastery progress will stay.
           </p>
         </div>
         <button
@@ -163,9 +170,9 @@ function StatisticsPage() {
           aria-live="polite"
         >
           {resetOutcome === 'saved'
-            ? 'Your practice history and statistics have been reset. Your settings are unchanged.'
+            ? 'Your practice history and attempt totals have been reset. Your settings, mistake patterns, and mastery progress are unchanged.'
             : resetOutcome === 'unsaved'
-              ? 'Your statistics are cleared for now, but the reset couldn’t be saved. Saved history may return after a reload. You can try Reset Statistics again.'
+              ? 'Your practice history is cleared for now, but the reset couldn’t be saved. Saved history may return after a reload. You can try Reset Statistics again.'
               : ''}
         </p>
       </section>

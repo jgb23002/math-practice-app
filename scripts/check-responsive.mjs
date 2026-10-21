@@ -15,10 +15,14 @@ import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { checkSessionRecovery } from './session-recovery-checks.mjs'
 import { checkErrorRecovery } from './error-recovery-checks.mjs'
+import { checkAccessibility } from './accessibility-checks.mjs'
+import { checkBrowserPersistence } from './browser-persistence-checks.mjs'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const recoveryOnly = process.env.SESSION_RECOVERY_ONLY === '1'
 const errorsOnly = process.env.ERROR_RECOVERY_ONLY === '1'
+const accessibilityOnly = process.env.ACCESSIBILITY_ONLY === '1'
+const persistenceOnly = process.env.BROWSER_PERSISTENCE_ONLY === '1'
 const screenshotDir = process.env.RESPONSIVE_SCREENSHOT_DIR
 const sizes = [
   [1440, 900],
@@ -225,25 +229,11 @@ async function stop(child) {
   }
 }
 
-try {
-  const binary = await chromeBinary()
-  profile = await mkdtemp(join(tmpdir(), 'math-practice-responsive-'))
-  const listener = createServer()
-  await new Promise((resolve) => listener.listen(0, '127.0.0.1', resolve))
-  const port = listener.address().port
-  await new Promise((resolve) => listener.close(resolve))
-  const origin = `http://127.0.0.1:${port}`
-  server = launch(process.execPath, [
-    join(root, 'node_modules/vite/bin/vite.js'),
-    '--host',
-    '127.0.0.1',
-    '--port',
-    String(port),
-    '--strictPort',
-  ])
-  await until(async () => (await fetch(origin)).ok, 'local Vite server')
+async function startBrowser(binary) {
+  await rm(join(profile, 'DevToolsActivePort'), { force: true })
   browser = launch(binary, [
     '--headless',
+    ...(accessibilityOnly ? ['--window-size=1280,900'] : []),
     '--mute-audio',
     '--disable-background-networking',
     '--disable-sync',
@@ -286,12 +276,65 @@ try {
   await send('Page.addScriptToEvaluateOnNewDocument', {
     source: `let feedbackSeed = 17017; Math.random = () => ((feedbackSeed = (Math.imul(1664525, feedbackSeed) + 1013904223) >>> 0) / 4294967296)`,
   })
+}
+
+try {
+  const binary = await chromeBinary()
+  profile = await mkdtemp(join(tmpdir(), 'math-practice-responsive-'))
+  const listener = createServer()
+  await new Promise((resolve) => listener.listen(0, '127.0.0.1', resolve))
+  const port = listener.address().port
+  await new Promise((resolve) => listener.close(resolve))
+  const origin = `http://127.0.0.1:${port}`
+  server = launch(process.execPath, [
+    join(root, 'node_modules/vite/bin/vite.js'),
+    '--host',
+    '127.0.0.1',
+    '--port',
+    String(port),
+    '--strictPort',
+  ])
+  await until(async () => (await fetch(origin)).ok, 'local Vite server')
+  await startBrowser(binary)
+  async function restartBrowser() {
+    const previous = browser,
+      previousSocket = socket
+    await send('Browser.close')
+    await until(
+      () => previous.exitCode !== null || previous.signalCode !== null,
+      'clean Chrome process exit',
+    )
+    previousSocket.close()
+    await startBrowser(binary)
+    return socket
+  }
   await send('Page.navigate', { url: origin })
   await until(
     () => evaluate(`!!document.querySelector('main h1')`),
     'application',
   )
-  if (errorsOnly) {
+  if (persistenceOnly) {
+    await checkBrowserPersistence({
+      send,
+      evaluate,
+      until,
+      click,
+      inspect,
+      socket,
+      origin,
+      restartBrowser,
+    })
+  } else if (accessibilityOnly) {
+    await checkAccessibility({
+      send,
+      evaluate,
+      until,
+      click,
+      inspect,
+      socket,
+      origin,
+    })
+  } else if (errorsOnly) {
     await checkErrorRecovery({
       send,
       evaluate,
@@ -464,11 +507,11 @@ try {
   }
   assert.deepEqual(browserErrors, [])
   console.log(
-    `Passed ${checks} ${errorsOnly ? 'error recovery layouts and injected browser failures' : recoveryOnly ? 'recovery dialog layouts and native browser checks' : 'responsive states'}. Tests used an isolated browser profile; existing application data was not accessed.`,
+    `Passed ${checks} ${persistenceOnly ? 'browser persistence layouts and clean process restart checks' : accessibilityOnly ? 'accessibility layouts and automated Chrome checks' : errorsOnly ? 'error recovery layouts and injected browser failures' : recoveryOnly ? 'recovery dialog layouts and native browser checks' : 'responsive states'}. Tests used an isolated browser profile; existing application data was not accessed.`,
   )
 } catch (error) {
   console.error(
-    `${errorsOnly ? 'Error recovery' : recoveryOnly ? 'Session recovery' : 'Responsive'} check failed (${currentCase}): ${error.stack ?? error}\n${logs.slice(-1500)}`,
+    `${persistenceOnly ? 'Browser persistence' : accessibilityOnly ? 'Accessibility' : errorsOnly ? 'Error recovery' : recoveryOnly ? 'Session recovery' : 'Responsive'} check failed (${currentCase}): ${error.stack ?? error}\n${logs.slice(-1500)}`,
   )
   process.exitCode = 1
 } finally {

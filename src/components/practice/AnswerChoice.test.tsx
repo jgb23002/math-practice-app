@@ -18,7 +18,9 @@ test('displays an accessible answer button and reflects controlled selection', a
   rerender(<AnswerChoice answer={0} selected onSelect={onSelect} />)
   expect(answer).toHaveAttribute('aria-pressed', 'true')
   expect(answer).toHaveClass('is-selected')
-  expect(answer).toHaveTextContent('Selected')
+  expect(answer.parentElement).toHaveTextContent('✓ Selected')
+  expect(answer).toHaveTextContent(/^0$/)
+  expect(answer).toHaveAccessibleName('Answer 0')
 })
 
 test('supports native keyboard activation with Space and Enter', async () => {
@@ -42,3 +44,28 @@ test('does not allow selection when disabled', async () => {
   expect(answer).not.toHaveFocus()
   expect(onSelect).not.toHaveBeenCalled()
 })
+
+test.each([false, true])(
+  'keeps visible shortcut/status hints separate from the numeric button label (selected=%s)',
+  (selected) => {
+    render(
+      <AnswerChoice
+        answer={3}
+        shortcutKey={4}
+        selected={selected}
+        onSelect={vi.fn()}
+      />,
+    )
+    const button = screen.getByRole('button', {
+      name: 'Answer 3',
+      pressed: selected,
+    })
+    expect(button).toHaveTextContent(/^3$/)
+    expect(button).toHaveAttribute('aria-keyshortcuts', '4')
+    expect(button.parentElement).toHaveTextContent(
+      selected ? '✓ Selected' : 'Pick me',
+    )
+    expect(button.parentElement?.querySelector('kbd')).toHaveTextContent('4')
+    expect(button.querySelector('[aria-hidden]')).toBeNull()
+  },
+)

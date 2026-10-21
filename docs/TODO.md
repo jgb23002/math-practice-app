@@ -784,47 +784,49 @@ Verification: see [error-handling.md](error-handling.md) for the failure audit, 
 
 ### 79. Complete Unit Tests
 
-- [ ] Test all arithmetic generators.
-- [ ] Test difficulty boundaries.
-- [ ] Test distractor generation.
-- [ ] Test answer-choice uniqueness.
-- [ ] Test statistics calculations.
-- [ ] Test mistake-pattern updates.
-- [ ] Test similar-question generation.
-- [ ] Test mastery rules.
-- [ ] Test storage serialization and validation.
+- [x] Test all arithmetic generators.
+- [x] Test difficulty boundaries.
+- [x] Test distractor generation.
+- [x] Test answer-choice uniqueness.
+- [x] Test statistics calculations.
+- [x] Test mistake-pattern updates.
+- [x] Test similar-question generation.
+- [x] Test mastery rules.
+- [x] Test storage serialization and validation.
 
 ### 80. Complete Component Tests
 
-- [ ] Test operation selection.
-- [ ] Test difficulty selection.
-- [ ] Test answer selection.
-- [ ] Test card flipping.
-- [ ] Test right and wrong buttons.
-- [ ] Test progress updates.
-- [ ] Test session completion.
-- [ ] Test statistics display.
-- [ ] Test confirmation dialogs.
+- [x] Test operation selection.
+- [x] Test difficulty selection.
+- [x] Test answer selection.
+- [x] Test card flipping.
+- [x] Test right and wrong buttons.
+- [x] Test progress updates.
+- [x] Test session completion.
+- [x] Test statistics display.
+- [x] Test confirmation dialogs.
 
 ### 81. Complete Integration Tests
 
-- [ ] Test a full addition session.
-- [ ] Test a mixed-operation session.
-- [ ] Test continuous practice.
-- [ ] Test an incorrect answer creating a mistake pattern.
-- [ ] Test mistake-review generation.
-- [ ] Test mastery completion.
-- [ ] Test persistence after a browser refresh.
-- [ ] Test resetting statistics.
+- [x] Test a full addition session.
+- [x] Test a mixed-operation session.
+- [x] Test continuous practice.
+- [x] Test an incorrect answer creating a mistake pattern.
+- [x] Test mistake-review generation.
+- [x] Test mastery completion.
+- [x] Test persistence after a browser refresh.
+- [x] Test resetting statistics.
 
 ### 82. Complete Accessibility Testing
 
-- [ ] Complete a session using only the keyboard.
+- [x] Complete a session using only the keyboard.
 - [ ] Test with a screen reader.
-- [ ] Test reduced-motion mode.
-- [ ] Test browser zoom.
-- [ ] Run an automated accessibility checker.
+- [x] Test reduced-motion mode.
+- [x] Test browser zoom.
+- [x] Run an automated accessibility checker.
 - [ ] Manually review reported issues.
+
+Verification: see [testing-audit.md](testing-audit.md) for the full requirement mapping, 1,294 passing automated tests, browser checks, fixed findings, and unexecuted human/cross-browser checks. Keyboard, reduced motion, zoom, and axe checks used automated Chrome; screen-reader testing and human review of incomplete contrast findings remain open.
 
 ---
 

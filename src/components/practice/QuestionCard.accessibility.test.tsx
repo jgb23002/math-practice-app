@@ -27,7 +27,7 @@ test('number shortcuts follow shuffled choice positions, allow changes, and requ
     expect(choice).toHaveFocus()
     expect(choice).toHaveAttribute('aria-pressed', 'true')
     expect(choice).toHaveAttribute('aria-keyshortcuts', String(index + 1))
-    expect(choice).toHaveTextContent('✓ Selected')
+    expect(choice.parentElement).toHaveTextContent('✓ Selected')
     expect(screen.getAllByRole('button', { pressed: true })).toHaveLength(1)
   }
   expect(onAnswerSelect.mock.calls).toEqual([[9], [0], [7], [6]])

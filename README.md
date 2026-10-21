@@ -25,6 +25,9 @@ Active cards recover after refresh, with saved selections and revealed answers.
 Navigation prompts let students stay, pause practice, or end their session.
 Failure handling preserves valid saved records, uses validated fallback cards,
 and offers friendly retry/home actions when a page or practice step cannot finish.
+Phase 20 expands the automated coverage and adds reproducible Chrome accessibility
+and browser-restart checks. Human screen-reader testing and accessibility-result
+review remain unfinished; see the [testing audit](docs/testing-audit.md).
 
 ## Setup
 
@@ -61,6 +64,11 @@ Other commands:
   refresh prompts, exact card recovery, Back/Forward, and safe navigation.
 - `npm run check:errors`: inject corrupt JSON, denied storage, quota failures, and
   invalid randomness into a disposable browser profile and verify recovery.
+- `npm run check:accessibility`: run local axe-core scans, a native keyboard-only
+  session, motion combinations, and genuine 200% Chrome zoom. Incomplete axe
+  results are reported separately for human review.
+- `npm run check:browser-persistence`: close/relaunch Chrome three times using the
+  same temporary profile and verify live cards, mastery, completed history, and reset.
 
 See [the responsive checks and visual changes](docs/responsive-checks.md) for
 screen sizes, optional screenshots, and manual device checks. The remaining
@@ -69,6 +77,14 @@ See [session recovery and navigation checks](docs/session-recovery.md) for saved
 state, failure recovery, browser limitations, and manual checks.
 The [error-handling audit](docs/error-handling.md) describes the failure cases,
 retry limits, fallback policies, data preservation, and test simulations.
+The [Phase 20 testing audit](docs/testing-audit.md) maps requirements to tests and
+separates passed, fixed, and unexecuted checks. All browser scripts use automated
+Chrome/Chromium checks; they do not establish manual or cross-browser verification.
+
+The accessibility script writes its detailed report to
+`/tmp/math-practice-accessibility.json`. Set `ACCESSIBILITY_REPORT_PATH` to change
+the destination. Axe-core is a development dependency and runs locally; it is not
+loaded by the child-facing application or included in its production bundle.
 
 ESLint checks JavaScript, TypeScript, React hooks, and Fast Refresh exports.
 Prettier handles formatting; the supplied assignment documents retain their

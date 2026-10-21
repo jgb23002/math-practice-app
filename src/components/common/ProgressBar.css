@@ -1,0 +1,13 @@
+.practice-progress {
+  height: 0.55rem;
+  overflow: hidden;
+  border-radius: 1rem;
+  background: #dfe7d8;
+}
+
+.practice-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #3657ce;
+}

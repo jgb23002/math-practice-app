@@ -1,0 +1,141 @@
+.practice-page {
+  max-width: 1060px;
+  margin-inline: auto;
+}
+
+.practice-page__heading h1 {
+  margin-block: 0.75rem;
+  font-size: clamp(2rem, 3.8vw, 2.9rem);
+  letter-spacing: -0.07rem;
+}
+
+.practice-page__heading > p:last-child {
+  color: var(--muted);
+}
+
+.practice-page__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  align-items: start;
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+.practice-page__card-area {
+  min-width: 0;
+}
+
+.practice-page__animation-setting {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: fit-content;
+  min-height: 52px;
+  margin-bottom: 1rem;
+  font-size: 0.83rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.practice-page__animation-setting input {
+  width: 23px;
+  height: 23px;
+  margin: 0;
+  accent-color: var(--blue);
+}
+
+.practice-page__animation-setting small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.practice-page__plan {
+  margin-top: 4rem;
+  padding: 1.4rem;
+  border: 1px solid #d9e3d0;
+  border-radius: var(--radius);
+  background: #edf3e8;
+}
+
+.practice-page__star {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  margin-bottom: 1rem;
+  border: 1px solid #ded3ae;
+  border-radius: 18px;
+  color: #8b672d;
+  background: #faf0d2;
+  font-size: 1.7rem;
+  transform: rotate(-7deg);
+}
+
+.practice-page__plan h2 {
+  font-size: 1.2rem;
+}
+
+.practice-page__steps {
+  margin-block: 1.3rem;
+  padding-left: 1.2rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.practice-page__steps li + li {
+  margin-top: 0.45rem;
+}
+
+.practice-page__plan .button {
+  width: 100%;
+  padding-inline: 0.6rem;
+  font-size: 0.83rem;
+}
+
+.practice-page__encouragement {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.practice-page__encouragement .icon {
+  width: 1rem;
+  color: #985938;
+}
+
+.practice-page__empty,
+.practice-page__recovery {
+  margin-top: 2rem;
+  padding: clamp(1.2rem, 4vw, 2.5rem);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fffefb;
+}
+
+.practice-page__empty p {
+  max-width: 36rem;
+  margin-block: 1rem 1.5rem;
+  color: var(--muted);
+}
+
+.practice-page__recovery button {
+  margin-top: 1rem;
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .practice-page__layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .practice-page__plan {
+    margin-top: 0;
+  }
+}

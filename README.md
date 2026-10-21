@@ -6,11 +6,11 @@ TypeScript, and Vite. Requirements and the development checklist are in
 
 ## Current scope
 
-Phases 1–5 establish the development tools, shared domain types, responsive
+Phases 1–6 establish the development tools, shared domain types, responsive
 application layout, home page, routing, practice configuration, and a tested
-question-generation service with multiple-choice answers. Students can configure
-practice and review their choices on the session page. Generated questions are
-not displayed yet; interactive cards, statistics, and settings controls belong
+question-generation service with multiple-choice answers and interactive cards.
+Students can configure practice, select an answer, flip a card, and mark how they
+did. Session advancement, totals, persistence, and full settings controls belong
 to later phases.
 
 ## Setup
@@ -54,13 +54,13 @@ React Testing Library tests. DOM matchers and cleanup are configured in
 src/
 ├── app/                    # Application shell, routes, and navigation tests
 ├── components/
-│   ├── common/
+│   ├── common/             # Shared buttons, icons, and question progress
 │   ├── layout/
-│   ├── practice/
+│   ├── practice/           # Setup selectors and interactive question cards
 │   └── statistics/
 ├── config/                 # Practice options and arithmetic difficulty rules
-├── hooks/                  # Page titles and access to practice configuration
-├── pages/                  # Home, setup, session plan, placeholders, and fallback
+├── hooks/                  # Titles, practice configuration, and reduced motion
+├── pages/                  # Home, setup, practice card, placeholders, and fallback
 ├── services/               # Arithmetic, distractors, and shuffled answer choices
 ├── test/                   # Shared test setup
 ├── types/                  # Questions, sessions, mistakes, statistics, settings
@@ -69,8 +69,9 @@ src/
 └── main.tsx
 ```
 
-Empty feature folders contain `.gitkeep` placeholders. Interactive question/attempt
-state, settings controls, and statistics calculations are not implemented yet.
+Empty feature folders contain `.gitkeep` placeholders. Card interaction state is
+local to the question. Session history, statistics calculations, and persisted
+settings are not implemented yet.
 
 ## Routes and navigation
 
@@ -81,7 +82,7 @@ React Router's `BrowserRouter` wraps the application in `src/main.tsx`.
 | ------------------- | ------------------------------------------- |
 | `/`                 | Home                                        |
 | `/practice/setup`   | Practice configuration form                 |
-| `/practice/session` | Selected plan and practice-card placeholder |
+| `/practice/session` | Interactive card and selected practice plan |
 | `/practice/summary` | Session summary placeholder                 |
 | `/statistics`       | Statistics placeholder                      |
 | `/settings`         | Settings placeholder                        |
@@ -116,13 +117,14 @@ on form submission and at the shared-state boundary.
 `AppProvider` stores a validated `PracticeConfiguration` snapshot in React
 Context. The session page displays that plan, and returning to setup restores
 the choices for editing. Local draft changes do not alter the saved plan until
-Start Session is selected again. Configuration is held in memory; refresh
-recovery and local-storage persistence belong to later phases.
+Start Session is selected again. The practice page generates a first card from
+that plan. Configuration is held in memory; refresh recovery and local-storage
+persistence belong to later phases.
 
 The configuration model uses a nonempty operations tuple, one of the four
 difficulty levels, and a length of 5, 10, 20, or `continuous`. It is separate from
-the session-history model. Submitting setup does not generate questions, record
-attempts, initialize session counters, or start a continuous question loop.
+the session-history model. The practice page currently presents one card; it
+does not initialize session counters or start a continuous question loop.
 
 Tests cover individual/mixed selection, exclusive radio choices, validation,
 configuration transfer and restoration, keyboard interaction, and protection
@@ -144,7 +146,7 @@ Each result is a complete `Question` containing a UUID, operation, operands,
 correct answer, difficulty, display text, `source: 'regular'`, and four shuffled
 answer choices. `ArithmeticQuestion` represents the arithmetic core accepted by
 the separate answer-choice service before choices are attached.
-The service is independent of React and is not wired into the practice page yet.
+The service is independent of React; the practice page uses it to create a card.
 
 All numeric bounds are inclusive and live in `src/config/difficulty.ts`:
 
@@ -243,7 +245,45 @@ shuffled with Fisher–Yates. Neither service mutates the input question.
 Tests cover carrying/borrowing mistakes, neighboring facts, zero and small answers,
 large factors with a zero product, maximum results, constant random sources,
 retry bounds, malformed choices, and all correct-answer positions for an unchanged
-question. Phase 6 will add the interactive question card.
+question.
+
+## Interactive question cards
+
+`AnswerChoice`, `CardFront`, `CardBack`, and `QuestionCard` are reusable practice
+components. `ProgressBar` presents the supplied question position with an
+accessible label and value; it is omitted for continuous practice. It represents
+position, not a count of recorded results.
+
+The card begins with no selected answer and a disabled Flip Card button. Answer
+buttons use native keyboard activation and `aria-pressed`; one choice is
+highlighted at a time. Students can change their answer until flipping. The back
+shows the original question, correct answer, selected answer, and an
+operation-specific explanation. Only **I Got It Right** or **I Got It Wrong**
+emits `onSelfReport({ questionId, selectedAnswer, selfReportedCorrect })`.
+The child's report is respected even when it differs from arithmetic correctness.
+Selecting an answer and flipping never emit a result.
+
+Both report buttons lock after one report, including rapid repeated events.
+Changing the question ID resets selection, flip state, and the report lock.
+Focus moves to the reveal heading after flipping and to the new question when
+its ID changes. Inactive faces are hidden from assistive technology, inert, and
+have disabled controls, preventing keyboard access or further answer changes.
+
+The CSS flip uses aligned grid faces and hides their reverse surfaces to prevent
+mirrored text. Interaction does not depend on animation timing. Device reduced
+motion is observed initially and when it changes; CSS also applies the preference.
+A **Card animation** checkbox disables the flip effect for the current practice
+view. This setting is held in memory and cannot override device reduced motion.
+
+The practice page displays the first generated card and acknowledges the child's
+self-report in memory. It offers setup when no plan exists and a retry action
+when generation fails. Full session advancement, attempt history, and totals
+remain Phase 7; nothing is written to local storage in this phase.
+
+Component and integration tests cover selection changes, zero answers, flip
+gating, explanations, self-report semantics, duplicate prevention, reset and
+focus behavior, keyboard navigation, reduced-motion changes, listener cleanup,
+animation settings, progress, generation recovery, and absence of storage writes.
 
 ## Shared types
 
@@ -255,6 +295,6 @@ question. Phase 6 will add the interactive question card.
 - `settings.ts`: application preferences, practice defaults, and mastery threshold.
 
 Attempts retain both the selected answer and the self-reported result. Runtime
-validation currently covers practice configuration and arithmetic questions.
+validation currently covers practice configuration and complete questions.
 Persistence, settings defaults, and validation for later features belong to their
 respective phases.

@@ -6,6 +6,8 @@ import { afterEach, expect, test, vi } from 'vitest'
 import App from '../app/App'
 import AppRoutes from '../app/AppRoutes'
 import PracticeSessionContext from '../app/PracticeSessionContext'
+import { createDefaultSettings } from '../config/storage'
+import { createEmptyStatistics } from '../services/progressPersistence'
 import * as questionGenerator from '../services/questionGenerator'
 import { createQuestion } from '../test/questionFixtures'
 import { createAttempt, createCompletedSession } from '../test/sessionFixtures'
@@ -26,6 +28,14 @@ function renderSummary(
   session: PracticeSessionState = createCompletedSession(),
 ) {
   const context = {
+    progress: {
+      settings: createDefaultSettings(),
+      sessions: [],
+      attempts: [],
+      statistics: createEmptyStatistics(),
+    },
+    updateSettings: vi.fn(() => false),
+    storageWarning: null,
     session,
     configuration: {
       operations: ['addition'] as const,

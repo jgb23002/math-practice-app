@@ -1,4 +1,15 @@
-import { useRef, useState, type PropsWithChildren } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type PropsWithChildren,
+} from 'react'
+import {
+  createProgressPersistence,
+  withSessionProgress,
+} from '../services/progressPersistence'
+import { createJsonStorage, type JsonStorage } from '../services/storage'
 import {
   createPracticeSession,
   transitionPracticeSession,
@@ -9,13 +20,47 @@ import type {
 } from '../types/session'
 import type { PracticeConfiguration } from '../types/practiceConfiguration'
 import { isValidPracticeConfiguration } from '../utils/practiceConfiguration'
+import { isAppSettings } from '../utils/storageValidation'
 import PracticeSessionContext from './PracticeSessionContext'
 
-function AppProvider({ children }: PropsWithChildren) {
+function AppProvider({
+  children,
+  storage: suppliedStorage,
+}: PropsWithChildren<{ storage?: JsonStorage }>) {
+  const [storage] = useState(() => suppliedStorage ?? createJsonStorage())
+  const [persistence] = useState(() => createProgressPersistence(storage))
+  const [progress, setProgress] = useState(persistence.initial)
+  const progressRef = useRef(progress)
+  const storageWarning = useSyncExternalStore(
+    persistence.subscribe,
+    persistence.getWarning,
+    persistence.getWarning,
+  )
   const [configuration, setConfiguration] =
-    useState<PracticeConfiguration | null>(null)
+    useState<PracticeConfiguration | null>(() => {
+      const latest = persistence.initial.sessions[0]
+      return isValidPracticeConfiguration(latest) ? latest : null
+    })
   const [session, setSession] = useState<PracticeSessionState | null>(null)
   const sessionRef = useRef<PracticeSessionState | null>(null)
+
+  useEffect(() => {
+    persistence.save(progress)
+  }, [persistence, progress])
+
+  function commitProgress(next: typeof progress) {
+    progressRef.current = next
+    setProgress(next)
+  }
+
+  function updateSettings(candidate: unknown) {
+    if (!isAppSettings(candidate)) return false
+    commitProgress({
+      ...progressRef.current,
+      settings: structuredClone(candidate),
+    })
+    return true
+  }
 
   function configureSession(candidate: unknown) {
     if (!isValidPracticeConfiguration(candidate)) return false
@@ -26,6 +71,7 @@ function AppProvider({ children }: PropsWithChildren) {
       sessionLength: candidate.sessionLength,
     }
     const next = createPracticeSession(snapshot)
+    commitProgress(withSessionProgress(progressRef.current, next))
     sessionRef.current = next
     setSession(next)
     setConfiguration(snapshot)
@@ -41,6 +87,8 @@ function AppProvider({ children }: PropsWithChildren) {
     // batch must see the new question/session, not an already recorded attempt.
     sessionRef.current = next
     setSession(next)
+    if (action.type === 'report' || action.type === 'end')
+      commitProgress(withSessionProgress(progressRef.current, next))
     return true
   }
 
@@ -65,6 +113,9 @@ function AppProvider({ children }: PropsWithChildren) {
   return (
     <PracticeSessionContext.Provider
       value={{
+        progress,
+        updateSettings,
+        storageWarning,
         configuration,
         configureSession,
         session,

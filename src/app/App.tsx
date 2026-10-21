@@ -1,4 +1,5 @@
 import Header from '../components/layout/Header'
+import StorageWarning from '../components/common/StorageWarning'
 import PageContainer from '../components/layout/PageContainer'
 import AppRoutes from './AppRoutes'
 import AppProvider from './AppProvider'
@@ -12,6 +13,7 @@ function App() {
           Skip to main content
         </a>
         <Header />
+        <StorageWarning />
         <PageContainer>
           <AppRoutes />
         </PageContainer>

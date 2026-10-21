@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Navigate } from 'react-router'
 import ButtonLink from '../components/common/ButtonLink'
 import Icon from '../components/common/Icon'
@@ -15,8 +14,9 @@ function ConfiguredCard({
 }: {
   configuration: PracticeConfiguration
 }) {
-  const { session, dispatchSession } = usePracticeConfiguration()
-  const [animationsEnabled, setAnimationsEnabled] = useState(true)
+  const { session, dispatchSession, progress, updateSettings } =
+    usePracticeConfiguration()
+  const animationsEnabled = progress.settings.animationsEnabled
   if (!session) return null
   const question = session.currentQuestion
 
@@ -36,7 +36,12 @@ function ConfiguredCard({
           <input
             type="checkbox"
             checked={animationsEnabled}
-            onChange={(event) => setAnimationsEnabled(event.target.checked)}
+            onChange={(event) =>
+              updateSettings({
+                ...progress.settings,
+                animationsEnabled: event.target.checked,
+              })
+            }
           />
           <span>
             Card animation{' '}

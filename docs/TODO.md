@@ -376,43 +376,43 @@ Implementation note: Phase 4 returns a validated `ArithmeticQuestion` core. The
 
 ### 35. Create the Storage Service
 
-- [ ] Create a wrapper around `localStorage`.
-- [ ] Add functions for reading data.
-- [ ] Add functions for writing data.
-- [ ] Add JSON parsing error handling.
-- [ ] Add validation for loaded data.
-- [ ] Handle unavailable browser storage.
-- [ ] Handle storage-capacity errors.
+- [x] Create a wrapper around `localStorage`.
+- [x] Add functions for reading data.
+- [x] Add functions for writing data.
+- [x] Add JSON parsing error handling.
+- [x] Add validation for loaded data.
+- [x] Handle unavailable browser storage.
+- [x] Handle storage-capacity errors.
 
 ### 36. Add Data Schema Versioning
 
-- [ ] Store a data-schema version.
-- [ ] Detect missing or older versions.
-- [ ] Create an initial migration structure.
-- [ ] Avoid deleting unrelated stored data.
+- [x] Store a data-schema version.
+- [x] Detect missing or older versions.
+- [x] Create an initial migration structure.
+- [x] Avoid deleting unrelated stored data.
 
 ### 37. Persist Application Settings
 
-- [ ] Save selected settings.
-- [ ] Load settings when the application starts.
-- [ ] Use defaults when no settings exist.
-- [ ] Recover from invalid stored settings.
+- [x] Save selected settings.
+- [x] Load settings when the application starts.
+- [x] Use defaults when no settings exist.
+- [x] Recover from invalid stored settings.
 
 ### 38. Persist Practice Sessions
 
-- [ ] Save session information.
-- [ ] Save session completion details.
-- [ ] Load recent sessions.
-- [ ] Limit or summarize old session records when necessary.
+- [x] Save session information.
+- [x] Save session completion details.
+- [x] Load recent sessions.
+- [x] Limit or summarize old session records when necessary.
 
 ### 39. Persist Practice Attempts
 
-- [ ] Save every completed attempt.
-- [ ] Include the selected answer.
-- [ ] Include the self-reported result.
-- [ ] Include the operation and difficulty.
-- [ ] Include the session ID and timestamp.
-- [ ] Confirm that attempts persist after a browser restart.
+- [x] Save every completed attempt.
+- [x] Include the selected answer.
+- [x] Include the self-reported result.
+- [x] Include the operation and difficulty.
+- [x] Include the session ID and timestamp.
+- [x] Confirm that attempts persist after a browser restart.
 
 ---
 

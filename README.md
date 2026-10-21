@@ -6,13 +6,14 @@ TypeScript, and Vite. Requirements and the development checklist are in
 
 ## Current scope
 
-Phases 1–8 establish the development tools, shared domain types, responsive
+Phases 1–9 establish the development tools, shared domain types, responsive
 application layout, home page, routing, practice configuration, and a tested
 question-generation service with multiple-choice answers and interactive cards.
 Students can configure practice, select an answer, flip a card, and mark how they
 did. Sessions advance automatically, keep self-reported totals and attempts in
-memory, and finish with a session summary and navigation actions. Persistence,
-mistake review, statistics dashboards, and full settings controls belong to later
+memory, and finish with a session summary and navigation actions. Settings,
+session history, attempts, and aggregate totals persist in browser local storage.
+Mistake review, statistics dashboards, and full settings controls belong to later
 phases.
 
 ## Setup
@@ -63,7 +64,7 @@ src/
 ├── config/                 # Practice options and arithmetic difficulty rules
 ├── hooks/                  # Titles, practice configuration, and reduced motion
 ├── pages/                  # Home, setup, practice, summary, placeholders, fallback
-├── services/               # Arithmetic, answer choices, and session transitions
+├── services/               # Arithmetic, sessions, JSON storage, and persistence
 ├── test/                   # Shared test setup and session fixtures
 ├── types/                  # Questions, sessions, mistakes, statistics, settings
 ├── utils/                  # Randomness, IDs, validation, and session summaries
@@ -73,8 +74,8 @@ src/
 
 Empty feature folders contain `.gitkeep` placeholders. Card interaction state is
 keyed to the question, and the session context retains selection, reveal state,
-and attempts while the app remains open. Cross-session history, statistics
-calculations, and persisted settings are not implemented yet.
+and attempts while the app remains open. Session history is stored locally;
+statistics dashboards and full settings controls are not implemented yet.
 
 ## Routes and navigation
 
@@ -121,8 +122,8 @@ on form submission and at the shared-state boundary.
 Context. The session page displays that plan, and returning to setup restores
 the choices for editing. Local draft changes do not alter the saved plan until
 Start Session is selected again. Starting creates a unique session and generates
-the first card from that plan. Configuration is held in memory; refresh recovery
-and local-storage persistence belong to later phases.
+the first card from that plan. The most recent session's plan is restored on the
+setup page after a reload. Restoring an unfinished card belongs to Phase 18.
 
 The configuration model uses a nonempty operations tuple, one of the four
 difficulty levels, and a length of 5, 10, 20, or `continuous`. It is separate from
@@ -275,8 +276,8 @@ have disabled controls, preventing keyboard access or further answer changes.
 The CSS flip uses aligned grid faces and hides their reverse surfaces to prevent
 mirrored text. Interaction does not depend on animation timing. Device reduced
 motion is observed initially and when it changes; CSS also applies the preference.
-A **Card animation** checkbox disables the flip effect for the current practice
-view. This setting is held in memory and cannot override device reduced motion.
+A **Card animation** checkbox disables the flip effect. This preference persists
+between visits and cannot override device reduced motion.
 
 The card emits selection and reveal callbacks separately from self-reports.
 Session-backed cards restore their selected answer and reveal state when the
@@ -286,7 +287,7 @@ answer changes, flips, and repeated reports consistent even in one React batch.
 Component and integration tests cover selection changes, zero answers, flip
 gating, explanations, self-report semantics, duplicate prevention, reset and
 focus behavior, keyboard navigation, reduced-motion changes, listener cleanup,
-animation settings, progress, generation recovery, and absence of storage writes.
+animation settings, progress, generation recovery, and saving only accepted results.
 
 ## Practice sessions
 
@@ -324,8 +325,8 @@ card is excluded from the summary. An empty session can end with zero attempts.
 
 Direct navigation without a session redirects to setup. Completed sessions go to
 their summary, and opening the summary during active practice returns to the
-current card. Sessions survive route changes in memory; refresh starts with no
-session and redirects to setup. Nothing is written to local storage yet.
+current card. Active cards survive route changes in memory. A refresh returns to
+setup with the most recent plan; stored history and completed attempts remain.
 
 Tests cover all finite lengths, continuous practice beyond 20 attempts, exact
 completion, disagreement with arithmetic correctness, rapid and stale callbacks,
@@ -348,14 +349,69 @@ the previous choices restored. **View Statistics** opens the existing statistics
 placeholder, and **Return Home** opens `/`. **Practice Mistakes** is disabled with
 a visible coming-soon explanation until mistake review is implemented.
 
-Completion is recorded once in memory: inactive sessions reject later reports,
+Completion is recorded once: inactive sessions reject later reports,
 end requests, and retries, preserving the original completion timestamp and
 preventing further question generation. Rendering or revisiting a summary only
-reads the completed snapshot. Persisting completion records belongs to Phase 9.
+reads the completed snapshot. Persistence upserts one metadata record per session
+ID and appends each recorded attempt once.
 
 Tests cover empty and rounded accuracy, self-report semantics, practiced
 operations, review counts, summary navigation, repeated visits, all session
 lengths, rapid restarts, and repeated completion events.
+
+## Local data persistence
+
+`src/services/storage.ts` wraps guarded JSON reads and writes. It catches errors
+when accessing storage, reading, parsing, serializing, or writing. Read results
+distinguish absent, invalid, and unavailable data; writes also identify quota
+failures. Identical serialized values are not written again.
+
+`progressPersistence.ts` loads and saves independently validated categories:
+
+| Key                            | Data                                          |
+| ------------------------------ | --------------------------------------------- |
+| `mathPractice.settings`        | All `AppSettings` fields                      |
+| `mathPractice.sessions`        | Latest 100 session metadata records           |
+| `mathPractice.attempts`        | All completed attempts                        |
+| `mathPractice.statistics`      | Overall, operation, and difficulty totals     |
+| `mathPractice.version`         | `{ "version": 1 }`                            |
+| `mathPractice.mistakePatterns` | Reserved for mistake tracking; left untouched |
+
+Attempts include selected answers, self-reports, arithmetic, difficulty, source,
+session/question/attempt IDs, and timestamps. Selecting or revealing an answer
+does not save a result. Starting a session saves metadata; self-reports update
+metadata, attempts, and totals; ending saves the completion timestamp. Capping
+recent session metadata does not remove attempts or reduce aggregate totals.
+
+Validation checks settings, supported operations and lengths, arithmetic bounds,
+nonnegative integer answers, dates, IDs, duplicate attempts, session totals, and
+consistent aggregate groups. Missing categories use defaults. A corrupt category
+recovers independently without deleting other categories or unrelated keys.
+Missing, corrupt, or lagging statistics are rebuilt from readable attempts;
+larger valid aggregates survive loss of attempt details.
+
+Unversioned data is version 0. The initial migration accepts independently
+validated category shapes and upgrades the metadata to version 1. A migration
+registry provides the place for later version-by-version conversions. Unsupported
+newer versions, corrupt version metadata, and inaccessible storage on startup
+disable writes to protect data; reload after resolving the problem. Version
+metadata is written only after every category saves successfully.
+
+Storage failures leave practice usable in memory and show an accessible, friendly
+warning. Individual write failures do not block other categories, and later
+progress changes retry saving the current snapshot. Local-storage writes across
+keys are not transactional, so a failure may leave some categories newer than
+others. The application reconciles a lagging statistics cache from valid attempts
+on startup. Clearing browser data removes saved progress.
+
+Only the existing card-animation control is connected to persisted preferences
+in this phase. Other settings controls and applying practice defaults belong to
+Phase 11; active-question recovery belongs to Phase 18. No backend is involved.
+
+Tests cover JSON round trips, validation, corruption in each category, missing
+data, migration/version protection, quota and access failures, partial writes,
+recovery, history retention, Strict Mode, duplicate prevention, settings, and
+history surviving application remounts.
 
 ## Shared types
 
@@ -365,8 +421,9 @@ lengths, rapid restarts, and repeated completion events.
 - `mistake.ts`: mistake patterns and mastery progress.
 - `statistics.ts`: overall, operation, and difficulty totals.
 - `settings.ts`: application preferences, practice defaults, and mastery threshold.
+- `persistence.ts`: the independently stored progress categories.
 
 Attempts retain both the selected answer and the self-reported result. Runtime
-validation currently covers practice configuration and complete questions.
-Persistence, settings defaults, and validation for later features belong to their
-respective phases.
+validation covers practice configuration, complete questions, persisted settings,
+attempts, sessions, and statistics. Settings controls and mistake-pattern
+validation belong to their respective phases.

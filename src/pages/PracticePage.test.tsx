@@ -75,10 +75,11 @@ test('redirects to setup when the practice route has no valid session', () => {
   expect(screen.getByRole('button', { name: 'Start Session' })).toBeDisabled()
 })
 
-test('shows a generated card from the plan and never writes a result to storage', async () => {
+test('persists results only after a self-report, never on selection or reveal', async () => {
   const generator = mockQuestions()
   const save = vi.spyOn(Storage.prototype, 'setItem')
   const user = await startPractice()
+  save.mockClear()
   expect(generator).toHaveBeenCalledWith(['addition'], 1)
   expect(screen.getByText('Question 1 of 10')).toBeVisible()
   expect(screen.getByRole('main')).toHaveFocus()
@@ -94,7 +95,10 @@ test('shows a generated card from the plan and never writes a result to storage'
   expect(
     screen.getByText('Thanks for checking your work! Keep being curious.'),
   ).toBeVisible()
-  expect(save).not.toHaveBeenCalled()
+  expect(save).toHaveBeenCalledWith(
+    'mathPractice.attempts',
+    expect.stringContaining('"selfReportedCorrect":true'),
+  )
   expect(generator).toHaveBeenCalledTimes(2)
   expectTotals(1, 1, 0)
   expect(screen.getByText('Question 2 of 10')).toBeVisible()

@@ -14,6 +14,19 @@ coverage
 .vitest
 *.local
 
+# Local credentials, deployment state, and compiler caches
+.env
+.env.*
+!.env.example
+!.env.*.example
+.netlify/
+.aws/
+*.pem
+*.key
+*.p12
+*.pfx
+*.tsbuildinfo
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

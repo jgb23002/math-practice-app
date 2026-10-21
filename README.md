@@ -32,6 +32,11 @@ Phase 21 reduces redundant session saves, preserves history references during
 card interactions, memoizes statistics, and loads Settings/Statistics on demand.
 Recent session history expands in groups of 20. All attempt details are retained.
 See the [performance measurements and data-management review](docs/performance.md).
+Phase 22 adds Netlify build/routing configuration, visible local-progress privacy
+notices, and repeatable production/commit-candidate checks. The application is
+prepared for deployment; no live deployment is claimed. See the
+[release audit and final checklist](docs/release-checklist.md) for all 18 acceptance
+criteria, executed checks, remaining TODO items, and manual verification.
 
 ## Setup
 
@@ -77,6 +82,11 @@ Other commands:
   with 5,000 stored attempts, normal/4× throttled CPU, and recovery after four new
   self-reports. Verify deferred bundles and history limits. Set `PERFORMANCE_REPORT`
   to save the detailed JSON measurements. Requires local Chrome/Chromium.
+- `npm run check:release`: after `npm run build`, review commit candidates and
+  staged files for common credential/generated-file patterns, check Netlify
+  configuration, and run the production app in an isolated Chrome profile.
+  Checks direct URLs, assets, privacy/network behavior, session completion,
+  refresh, responsive settings, confirmed reset, and three clean browser restarts.
 
 See [the responsive checks and visual changes](docs/responsive-checks.md) for
 screen sizes, optional screenshots, and manual device checks. The remaining
@@ -88,8 +98,9 @@ retry limits, fallback policies, data preservation, and test simulations.
 The [Phase 20 testing audit](docs/testing-audit.md) maps requirements to tests and
 separates passed, fixed, and unexecuted checks. All browser scripts use automated
 Chrome/Chromium checks; they do not establish manual or cross-browser verification.
-The performance script serves the production build; the other browser scripts
-serve the development build.
+The performance and release scripts serve the production build; the other browser
+scripts serve the development build. Local preview checks do not execute Netlify's
+edge rewrite engine or prove that a live site is configured correctly.
 
 The accessibility script writes its detailed report to
 `/tmp/math-practice-accessibility.json`. Set `ACCESSIBILITY_REPORT_PATH` to change
@@ -101,6 +112,72 @@ Prettier handles formatting; the supplied assignment documents retain their
 original formatting. Vitest shares the Vite configuration and uses jsdom for
 React Testing Library tests. DOM matchers and cleanup are configured in
 `src/test/setup.ts`.
+
+## Privacy and saved progress
+
+No account, login, backend API, database, or application environment variables
+are needed. The app does not request names, email addresses, contact details, or
+other personal information, and it has no analytics SDK, advertisements, or
+external practice-page links. Practice answers, self-reported results, settings,
+mistake patterns, and statistics stay in the current browser's local storage.
+Optional sound is generated locally.
+
+**Clearing browser/site data may erase progress.** A different browser profile,
+device, or deployed origin has separate progress. Reset Statistics clears
+practice history after confirmation and preserves preferences/mastery. Clear All
+Application Data requires confirmation and resets all application categories.
+The app remains usable in memory if saving fails, with a visible warning.
+
+Hosting still involves normal requests for the app's static files. Review the
+Netlify project's logging, analytics, plugins, and script-injection settings
+before publishing; the local application audit does not certify hosting-platform
+data handling. Keep tracking/advertising integrations disabled.
+
+## Deployment to Netlify
+
+These instructions use a **Git-connected Netlify project**, which reads
+[`netlify.toml`](netlify.toml) from the repository root:
+
+- Build command: `npm run build` (includes TypeScript checking).
+- Publish directory: `dist`.
+- Build Node.js version: `24.14.1`, matching the verified local environment.
+- SPA rewrite: `/*` → `/index.html`, status `200`, without forcing existing assets
+  through the rewrite. This follows [Netlify's SPA routing guidance](https://docs.netlify.com/manage/routing/redirects/rewrites-proxies/#history-pushstate-and-single-page-apps).
+  The [dependency documentation](https://docs.netlify.com/build/configure-builds/manage-dependencies/#node-js-environment)
+  describes the `NODE_VERSION` setting.
+
+Before publishing:
+
+```bash
+npm ci
+npm run lint
+npm run format:check
+npm run typecheck
+npm test
+npm run build
+npm run check:release
+```
+
+Import the repository into Netlify, keep the repository root as the base
+directory, and review the file-based build settings. No Functions, Identity, API
+keys, or other backend services are required. Deploy only `dist`; keep source,
+credentials, dependency folders, and test reports out of published content.
+The root TOML routing configuration is used by this Git-connected workflow;
+dragging only `dist` into an unrelated file-upload host does not carry that
+configuration with it.
+
+Do not add secrets to `VITE_*` variables: client-side values can be included in
+public JavaScript. `.env` files, credentials, `dist`, `node_modules`, coverage,
+logs, and Netlify local state are ignored. Commit `package-lock.json` so the
+dependency resolution remains reviewable. The release scan checks known patterns
+in current/staged files and build output; it is not a full secret-history audit.
+
+After Netlify publishes, use the [release checklist](docs/release-checklist.md)
+to verify every direct URL/refresh, actual HTTPS behavior, persistence, responsive
+layouts, console/network activity, and the remaining browser/accessibility checks
+on the deployed origin. An unknown route should show the friendly fallback.
+Direct session/summary URLs without appropriate state should safely open setup.
+Do not mark deployment verification complete from local preview results alone.
 
 ## Source structure
 

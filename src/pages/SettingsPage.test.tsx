@@ -33,6 +33,28 @@ const storedSettings = () =>
   JSON.parse(localStorage.getItem(STORAGE_KEYS.settings)!)
 const clearLabel = 'Clear All Application Data'
 
+test('explains local-only progress and browser-data clearing without requesting personal information', async () => {
+  await renderApp()
+  const privacy = screen.getByRole('region', {
+    name: 'Your progress stays on this device',
+  })
+  expect(privacy).toHaveTextContent('No account is needed.')
+  expect(privacy).toHaveTextContent(
+    'doesn’t ask for your name or send your practice history to a server',
+  )
+  expect(privacy).toHaveTextContent(
+    'Clearing your browser data may erase your progress.',
+  )
+  expect(screen.getByRole('contentinfo')).toHaveTextContent(
+    'Clearing browser data may erase it.',
+  )
+  expect(
+    document.querySelector(
+      'input[type="email"], input[type="password"], input[type="tel"], textarea',
+    ),
+  ).toBeNull()
+})
+
 test('saves the encouragement preference, applies it to practice, and retains existing progress', async () => {
   const progress = createStatisticsProgress()
   delete progress.settings.feedbackEnabled // A pre-Phase-17 settings record.

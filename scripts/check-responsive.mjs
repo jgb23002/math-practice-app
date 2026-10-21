@@ -18,6 +18,7 @@ import { checkErrorRecovery } from './error-recovery-checks.mjs'
 import { checkAccessibility } from './accessibility-checks.mjs'
 import { checkBrowserPersistence } from './browser-persistence-checks.mjs'
 import { checkPerformance } from './performance-checks.mjs'
+import { checkRelease } from './release-checks.mjs'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
 const recoveryOnly = process.env.SESSION_RECOVERY_ONLY === '1'
@@ -25,6 +26,7 @@ const errorsOnly = process.env.ERROR_RECOVERY_ONLY === '1'
 const accessibilityOnly = process.env.ACCESSIBILITY_ONLY === '1'
 const persistenceOnly = process.env.BROWSER_PERSISTENCE_ONLY === '1'
 const performanceOnly = process.env.PERFORMANCE_ONLY === '1'
+const releaseOnly = process.env.RELEASE_ONLY === '1'
 const screenshotDir = process.env.RESPONSIVE_SCREENSHOT_DIR
 const sizes = [
   [1440, 900],
@@ -50,6 +52,8 @@ let logs = '',
   nextId = 0
 const pending = new Map()
 const browserErrors = []
+const productionRequests = []
+const productionConsoleErrors = []
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
 async function until(read, label) {
@@ -264,6 +268,27 @@ async function startBrowser(binary) {
   })
   socket.addEventListener('message', (event) => {
     const message = JSON.parse(event.data)
+    if (releaseOnly && message.method === 'Network.requestWillBeSent')
+      productionRequests.push({
+        url: message.params.request.url,
+        method: message.params.request.method,
+        type: message.params.type,
+      })
+    if (
+      releaseOnly &&
+      message.method === 'Runtime.consoleAPICalled' &&
+      message.params.type === 'error'
+    )
+      productionConsoleErrors.push('console.error')
+    if (
+      releaseOnly &&
+      message.method === 'Log.entryAdded' &&
+      message.params.entry.level === 'error'
+    )
+      productionConsoleErrors.push({
+        text: message.params.entry.text,
+        url: message.params.entry.url,
+      })
     if (message.method === 'Runtime.exceptionThrown')
       browserErrors.push(message.params.exceptionDetails.text)
     const request = pending.get(message.id)
@@ -275,6 +300,10 @@ async function startBrowser(binary) {
   })
   await send('Page.enable')
   await send('Runtime.enable')
+  if (releaseOnly) {
+    await send('Network.enable')
+    await send('Log.enable')
+  }
   await send('Page.addScriptToEvaluateOnNewDocument', {
     source: `let feedbackSeed = 17017; Math.random = () => ((feedbackSeed = (Math.imul(1664525, feedbackSeed) + 1013904223) >>> 0) / 4294967296)`,
   })
@@ -290,7 +319,7 @@ try {
   const origin = `http://127.0.0.1:${port}`
   server = launch(process.execPath, [
     join(root, 'node_modules/vite/bin/vite.js'),
-    ...(performanceOnly ? ['preview'] : []),
+    ...(performanceOnly || releaseOnly ? ['preview'] : []),
     '--host',
     '127.0.0.1',
     '--port',
@@ -316,7 +345,49 @@ try {
     () => evaluate(`!!document.querySelector('main h1:not([data-loading])')`),
     'application',
   )
-  if (performanceOnly) {
+  if (releaseOnly) {
+    await checkRelease({
+      send,
+      evaluate,
+      until,
+      click,
+      inspect,
+      socket,
+      origin,
+    })
+    await checkBrowserPersistence({
+      send,
+      evaluate,
+      until,
+      click,
+      inspect,
+      socket,
+      origin,
+      restartBrowser,
+    })
+    assert.ok(productionRequests.length > 0)
+    assert.deepEqual(
+      productionRequests.filter(
+        (request) =>
+          (new URL(request.url).protocol !== 'data:' &&
+            new URL(request.url).origin !== origin) ||
+          !['GET', 'HEAD'].includes(request.method) ||
+          ['XHR', 'Fetch', 'WebSocket', 'EventSource', 'Ping'].includes(
+            request.type,
+          ),
+      ),
+      [],
+      'Production flows must request only same-origin static content, without uploads or telemetry',
+    )
+    assert.deepEqual(
+      productionConsoleErrors,
+      [],
+      'No production console errors',
+    )
+    console.log(
+      `✓ ${productionRequests.length} same-origin/embedded static requests; no observed API uploads, third-party requests, cookies, or console errors`,
+    )
+  } else if (performanceOnly) {
     await checkPerformance({ send, evaluate, until, click, origin, socket })
   } else if (persistenceOnly) {
     await checkBrowserPersistence({
@@ -511,7 +582,11 @@ try {
     }
   }
   assert.deepEqual(browserErrors, [])
-  if (performanceOnly)
+  if (releaseOnly)
+    console.log(
+      `Passed production release checks and ${checks} layouts. Netlify edge behavior and other browser engines require separate verification.`,
+    )
+  else if (performanceOnly)
     console.log(
       'Passed production performance, large-history recovery, and lazy-loading checks. An isolated browser profile was used.',
     )
@@ -521,7 +596,7 @@ try {
     )
 } catch (error) {
   console.error(
-    `${performanceOnly ? 'Performance' : persistenceOnly ? 'Browser persistence' : accessibilityOnly ? 'Accessibility' : errorsOnly ? 'Error recovery' : recoveryOnly ? 'Session recovery' : 'Responsive'} check failed (${currentCase}): ${error.stack ?? error}\n${logs.slice(-1500)}`,
+    `${releaseOnly ? 'Release' : performanceOnly ? 'Performance' : persistenceOnly ? 'Browser persistence' : accessibilityOnly ? 'Accessibility' : errorsOnly ? 'Error recovery' : recoveryOnly ? 'Session recovery' : 'Responsive'} check failed (${currentCase}): ${error.stack ?? error}\n${logs.slice(-1500)}`,
   )
   process.exitCode = 1
 } finally {

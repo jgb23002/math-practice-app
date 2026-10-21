@@ -91,6 +91,15 @@
   gap: 1.2rem;
   margin-top: 1.5rem;
 }
+.settings-privacy {
+  padding: clamp(1rem, 3vw, 2rem);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fffefb;
+}
+.settings-privacy p + p {
+  margin-top: 0.8rem;
+}
 .settings-clear {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

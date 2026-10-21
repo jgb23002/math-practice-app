@@ -125,6 +125,23 @@ function SettingsPage() {
         </div>
       </section>
       <section
+        className="settings-privacy"
+        aria-labelledby="settings-privacy-heading"
+      >
+        <h2 id="settings-privacy-heading">
+          Your progress stays on this device
+        </h2>
+        <p>
+          No account is needed. Your settings, answers, and progress stay in
+          this browser. Math Practice doesn’t ask for your name or send your
+          practice history to a server.
+        </p>
+        <p>
+          Clearing your browser data may erase your progress. A different
+          browser or device has its own practice story.
+        </p>
+      </section>
+      <section
         className="settings-clear"
         aria-labelledby="settings-clear-heading"
       >

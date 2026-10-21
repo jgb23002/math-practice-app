@@ -42,6 +42,10 @@ function App() {
             <footer className="app-footer">
               <p>A little practice. A lot of possibility.</p>
               <p>For curious minds, ages 7–12</p>
+              <p>
+                Progress stays in this browser. Clearing browser data may erase
+                it.
+              </p>
             </footer>
           </div>
         </SessionNavigationSafety>

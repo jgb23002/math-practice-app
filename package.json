@@ -22,6 +22,7 @@
     "check:accessibility": "node scripts/check-accessibility.mjs",
     "check:browser-persistence": "node scripts/check-browser-persistence.mjs",
     "check:performance": "node scripts/check-performance.mjs",
+    "check:release": "node scripts/check-release.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -5,8 +5,12 @@ import {
   STORAGE_VERSION,
 } from '../config/storage'
 import type { StoredProgress } from '../types/persistence'
-import type { PracticeAttempt, PracticeSessionState } from '../types/session'
-import type { AppStatistics, OperationStatistics } from '../types/statistics'
+import type { PracticeSessionState } from '../types/session'
+import {
+  addAttemptsToStatistics,
+  calculateStatistics,
+  createEmptyStatistics,
+} from '../utils/statistics'
 import {
   isAppSettings,
   isAppStatistics,
@@ -15,50 +19,14 @@ import {
 } from '../utils/storageValidation'
 import type { JsonStorage } from './storage'
 
+export { createEmptyStatistics } from '../utils/statistics'
+
 export const SAVE_WARNING =
   'We can’t save your progress on this device right now. You can keep practicing, but new progress may be lost when you close this page.'
 const RECOVERY_WARNING =
   'Some saved progress couldn’t be read. We’ve kept the parts we could, and you can keep practicing.'
 const VERSION_WARNING =
   'This saved progress uses a version we can’t update. You can keep practicing, but new progress won’t be saved.'
-
-function emptyTotals(): OperationStatistics {
-  return { attempted: 0, correct: 0, incorrect: 0 }
-}
-export function createEmptyStatistics(): AppStatistics {
-  return {
-    ...emptyTotals(),
-    byOperation: {
-      addition: emptyTotals(),
-      subtraction: emptyTotals(),
-      multiplication: emptyTotals(),
-      division: emptyTotals(),
-    },
-    byDifficulty: {
-      1: emptyTotals(),
-      2: emptyTotals(),
-      3: emptyTotals(),
-      4: emptyTotals(),
-    },
-  }
-}
-
-/** A persisted cache; only accepted self-reports contribute to these totals. */
-function addAttempts(statistics: AppStatistics, attempts: PracticeAttempt[]) {
-  const next = structuredClone(statistics)
-  for (const attempt of attempts) {
-    for (const group of [
-      next,
-      next.byOperation[attempt.operation],
-      next.byDifficulty[attempt.difficulty],
-    ]) {
-      group.attempted++
-      if (attempt.selfReportedCorrect) group.correct++
-      else group.incorrect++
-    }
-  }
-  return next
-}
 
 function isVersion(value: unknown): value is { version: number } {
   return (
@@ -114,7 +82,7 @@ export function loadStoredProgress(storage: JsonStorage) {
     (statistics.status !== 'valid' ||
       statistics.value.attempted < attempts.value.length)
   )
-    progress.statistics = addAttempts(createEmptyStatistics(), attempts.value)
+    progress.statistics = calculateStatistics(attempts.value)
   if (writable)
     for (let from = versionNumber; from < STORAGE_VERSION; from++)
       progress = migrations[from](progress)
@@ -168,13 +136,14 @@ export function createProgressPersistence(storage: JsonStorage) {
       }
     },
     save: (progress: StoredProgress) => {
-      if (!loaded.writable) return
-      const nextWarning = saveStoredProgress(storage, progress)
-        ? loaded.warning
-        : SAVE_WARNING
-      if (nextWarning === warning) return
-      warning = nextWarning
-      for (const listener of listeners) listener()
+      if (!loaded.writable) return false
+      const saved = saveStoredProgress(storage, progress)
+      const nextWarning = saved ? loaded.warning : SAVE_WARNING
+      if (nextWarning !== warning) {
+        warning = nextWarning
+        for (const listener of listeners) listener()
+      }
+      return saved
     },
   }
 }
@@ -208,7 +177,7 @@ export function withSessionProgress(
     attempts: [...progress.attempts, ...added],
     statistics:
       added.length > 0
-        ? addAttempts(progress.statistics, added)
+        ? addAttemptsToStatistics(progress.statistics, added)
         : progress.statistics,
   }
 }

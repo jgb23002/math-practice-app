@@ -76,7 +76,7 @@ test.each([
     ).toHaveLength(1)
     expect(screen.getByRole('contentinfo')).toBeVisible()
 
-    if (path === '/statistics' || path === '/settings') {
+    if (path === '/settings') {
       expect(screen.getByText('Coming soon')).toBeVisible()
     }
   },

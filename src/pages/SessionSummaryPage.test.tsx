@@ -35,6 +35,7 @@ function renderSummary(
       statistics: createEmptyStatistics(),
     },
     updateSettings: vi.fn(() => false),
+    resetStatistics: vi.fn(() => true),
     storageWarning: null,
     session,
     configuration: {

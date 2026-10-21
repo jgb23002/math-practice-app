@@ -6,15 +6,16 @@ TypeScript, and Vite. Requirements and the development checklist are in
 
 ## Current scope
 
-Phases 1–9 establish the development tools, shared domain types, responsive
+Phases 1–10 establish the development tools, shared domain types, responsive
 application layout, home page, routing, practice configuration, and a tested
 question-generation service with multiple-choice answers and interactive cards.
 Students can configure practice, select an answer, flip a card, and mark how they
 did. Sessions advance automatically, keep self-reported totals and attempts in
 memory, and finish with a session summary and navigation actions. Settings,
 session history, attempts, and aggregate totals persist in browser local storage.
-Mistake review, statistics dashboards, and full settings controls belong to later
-phases.
+The statistics page shows overall, operation, difficulty, and recent-session
+performance with a confirmed reset. Mistake review and full settings controls
+belong to later phases.
 
 ## Setup
 
@@ -60,7 +61,7 @@ src/
 │   ├── common/             # Shared buttons, icons, and question progress
 │   ├── layout/
 │   ├── practice/           # Setup selectors and interactive question cards
-│   └── statistics/
+│   └── statistics/         # Reusable metrics, breakdowns, and session history
 ├── config/                 # Practice options and arithmetic difficulty rules
 ├── hooks/                  # Titles, practice configuration, and reduced motion
 ├── pages/                  # Home, setup, practice, summary, placeholders, fallback
@@ -75,7 +76,7 @@ src/
 Empty feature folders contain `.gitkeep` placeholders. Card interaction state is
 keyed to the question, and the session context retains selection, reveal state,
 and attempts while the app remains open. Session history is stored locally;
-statistics dashboards and full settings controls are not implemented yet.
+full settings controls and mistake-review dashboards belong to later phases.
 
 ## Routes and navigation
 
@@ -88,7 +89,7 @@ React Router's `BrowserRouter` wraps the application in `src/main.tsx`.
 | `/practice/setup`   | Practice configuration form               |
 | `/practice/session` | Active session, or redirect to setup      |
 | `/practice/summary` | Completed-session totals                  |
-| `/statistics`       | Statistics placeholder                    |
+| `/statistics`       | Statistics overview and session history   |
 | `/settings`         | Settings placeholder                      |
 | Any unmatched path  | Friendly fallback with a return-home link |
 
@@ -345,8 +346,8 @@ Regular practice currently produces zero review attempts.
 **Practice Again** starts a fresh session with the completed session's operations,
 difficulty, and length. A synchronous session-ID guard prevents rapid clicks from
 starting multiple sessions. **Change Settings** returns to `/practice/setup` with
-the previous choices restored. **View Statistics** opens the existing statistics
-placeholder, and **Return Home** opens `/`. **Practice Mistakes** is disabled with
+the previous choices restored. **View Statistics** opens the statistics dashboard,
+and **Return Home** opens `/`. **Practice Mistakes** is disabled with
 a visible coming-soon explanation until mistake review is implemented.
 
 Completion is recorded once: inactive sessions reject later reports,
@@ -412,6 +413,42 @@ Tests cover JSON round trips, validation, corruption in each category, missing
 data, migration/version protection, quota and access failures, partial writes,
 recovery, history retention, Strict Mode, duplicate prevention, settings, and
 history surviving application remounts.
+
+## Statistics
+
+`src/utils/statistics.ts` contains pure calculations for overall, operation, and
+difficulty totals. The same functions update and rebuild the persisted aggregate
+cache, preserving earlier totals when attempt details have been lost. Counts use
+the child's self-reports, including when their selected answer differs from the
+correct answer. Accuracy is `correct / attempted × 100`, with `0%` for zero
+attempts; displayed percentages round to the nearest whole number.
+
+The statistics page displays overall metrics, cards for every operation and all
+four difficulty levels, and recent sessions sorted by start time, newest first.
+Session cards show local dates/times, configured operations, difficulty, totals,
+and accuracy. Completed, in-progress, and unfinished sessions are labeled
+explicitly. Empty history and unused operation/difficulty groups have clear empty
+states. A current session's **Continue Practice** link returns to its card.
+Responsive grids adapt from four to two to one column, while history metrics and
+details stack on small screens.
+
+**Reset Statistics** opens the browser's native confirmation dialog with the
+specified prompt. Cancellation leaves progress unchanged. Confirmation clears
+attempts, session records, and all aggregate counts in memory and local storage.
+Settings, schema metadata, mistake-pattern data, and unrelated storage keys stay
+unchanged. Reset also invalidates the active session and stale callbacks so they
+cannot restore erased history; the current setup choices remain in memory.
+
+If the reset cannot be saved, the page explains that saved history may return
+after a reload and keeps the reset action available to retry. The existing global
+storage warning also remains visible. Reset is disabled when there is no history
+to clear and no failed reset to retry.
+
+Tests cover all sixteen operation/difficulty combinations, mixed totals,
+self-report semantics, accuracy and rounding, zero attempts, ordering, preserved
+aggregate history, populated/empty components, confirmation cancellation and
+acceptance, keyboard activation, durable reset, preference preservation, save
+failure/retry, live updates, and invalidation of active-session callbacks.
 
 ## Shared types
 

@@ -21,6 +21,7 @@ import type {
 import type { PracticeConfiguration } from '../types/practiceConfiguration'
 import { isValidPracticeConfiguration } from '../utils/practiceConfiguration'
 import { isAppSettings } from '../utils/storageValidation'
+import { createEmptyStatistics } from '../utils/statistics'
 import PracticeSessionContext from './PracticeSessionContext'
 
 function AppProvider({
@@ -60,6 +61,21 @@ function AppProvider({
       settings: structuredClone(candidate),
     })
     return true
+  }
+
+  function resetStatistics() {
+    // Invalidate the old card before React renders; stale reports cannot bring
+    // back cleared attempts. Practice preferences remain available in setup.
+    sessionRef.current = null
+    setSession(null)
+    const cleared = {
+      ...progressRef.current,
+      sessions: [],
+      attempts: [],
+      statistics: createEmptyStatistics(),
+    }
+    commitProgress(cleared)
+    return persistence.save(cleared)
   }
 
   function configureSession(candidate: unknown) {
@@ -115,6 +131,7 @@ function AppProvider({
       value={{
         progress,
         updateSettings,
+        resetStatistics,
         storageWarning,
         configuration,
         configureSession,

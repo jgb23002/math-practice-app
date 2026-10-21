@@ -9,6 +9,8 @@ import type {
 interface PracticeSessionContextValue {
   progress: StoredProgress
   updateSettings: (candidate: unknown) => boolean
+  /** Clears history in memory; returns whether the cleared snapshot was saved. */
+  resetStatistics: () => boolean
   storageWarning: string | null
   configuration: PracticeConfiguration | null
   configureSession: (candidate: unknown) => boolean

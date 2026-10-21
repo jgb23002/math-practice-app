@@ -5,6 +5,8 @@ export interface AppSettings {
   soundEnabled: boolean
   animationsEnabled: boolean
   showExplanations: boolean
+  /** Missing in older saves; encouraging messages default to enabled. */
+  feedbackEnabled?: boolean
   defaultSessionLength: PracticeSessionLength
   defaultDifficulty: DifficultyLevel
   defaultOperations: MathOperation[]

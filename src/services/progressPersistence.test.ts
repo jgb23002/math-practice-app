@@ -38,6 +38,28 @@ function recordedProgress() {
   )
 }
 
+test('loads older settings without the optional feedback preference without changing history or preferences', () => {
+  const { storage } = memoryStorage()
+  const progress = recordedProgress()
+  delete progress.settings.feedbackEnabled
+  progress.settings.soundEnabled = true
+  progress.settings.defaultOperations = ['division']
+  expect(saveStoredProgress(storage, progress)).toBe(true)
+  expect(loadStoredProgress(storage)).toEqual({
+    progress,
+    writable: true,
+    warning: null,
+  })
+})
+
+test('round-trips the disabled feedback preference without modifying other stored data', () => {
+  const { storage } = memoryStorage()
+  const progress = recordedProgress()
+  progress.settings.feedbackEnabled = false
+  expect(saveStoredProgress(storage, progress)).toBe(true)
+  expect(loadStoredProgress(storage).progress).toEqual(progress)
+})
+
 test('round-trips settings, attempts, completion, and aggregate statistics with schema version', () => {
   const { storage, data } = memoryStorage()
   const progress = recordedProgress()

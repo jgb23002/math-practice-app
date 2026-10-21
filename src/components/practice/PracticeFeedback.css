@@ -1,0 +1,27 @@
+.practice-feedback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  min-height: 3rem;
+  margin-bottom: 0.75rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid #cfdfc7;
+  border-radius: 1.1rem;
+  color: #365b3e;
+  background: #edf5e7;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.practice-feedback--supportive {
+  border-color: #eed7c7;
+  color: #794127;
+  background: #fff1e5;
+}
+
+.practice-feedback .icon {
+  width: 1.15rem;
+  height: 1.15rem;
+}

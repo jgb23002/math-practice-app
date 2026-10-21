@@ -83,6 +83,12 @@ function SettingsPage() {
             checked={settings.showExplanations}
             onChange={(showExplanations) => patchSettings({ showExplanations })}
           />
+          <PreferenceToggle
+            label="Encouraging messages"
+            description="Show a quiet word of encouragement after you mark a result. Turn off for a simpler practice screen."
+            checked={settings.feedbackEnabled !== false}
+            onChange={(feedbackEnabled) => patchSettings({ feedbackEnabled })}
+          />
         </div>
       </section>
       <section aria-labelledby="settings-defaults-heading">

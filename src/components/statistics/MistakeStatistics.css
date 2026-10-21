@@ -13,6 +13,7 @@
 }
 .mistake-statistics__heading {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -169,7 +170,7 @@
   border-radius: 1rem;
   background: #496c42;
 }
-@media (max-width: 46.875em) {
+@media (max-width: 56.25em) {
   .mistake-statistics__heading {
     align-items: flex-start;
     flex-direction: column;

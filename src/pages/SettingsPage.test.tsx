@@ -31,6 +31,58 @@ const storedSettings = () =>
   JSON.parse(localStorage.getItem(STORAGE_KEYS.settings)!)
 const clearLabel = 'Clear All Application Data'
 
+test('saves the encouragement preference, applies it to practice, and retains existing progress', async () => {
+  const progress = createStatisticsProgress()
+  delete progress.settings.feedbackEnabled // A pre-Phase-17 settings record.
+  const { user, unmount } = renderApp('/settings', progress)
+  expect(
+    screen.getByRole('checkbox', { name: 'Encouraging messages' }),
+  ).toBeChecked()
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  await user.click(
+    screen.getByRole('checkbox', { name: 'Encouraging messages' }),
+  )
+  expect(storedSettings().feedbackEnabled).toBe(false)
+  expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.attempts)!)).toEqual(
+    progress.attempts,
+  )
+  expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.statistics)!)).toEqual(
+    progress.statistics,
+  )
+  unmount()
+  const next = renderApp()
+  expect(
+    screen.getByRole('checkbox', { name: 'Encouraging messages' }),
+  ).not.toBeChecked()
+  await next.user.click(screen.getByRole('link', { name: 'Start Practice' }))
+  await next.user.click(screen.getByRole('button', { name: 'Start Session' }))
+  expect(
+    screen.queryByRole('status', { name: 'Practice encouragement' }),
+  ).not.toBeInTheDocument()
+  const answer = within(
+    screen.getByRole('group', { name: 'Choose one answer' }),
+  ).getAllByRole('button')[0]
+  await next.user.click(answer)
+  await next.user.click(screen.getByRole('button', { name: 'Flip Card' }))
+  const before = localStorage.getItem(STORAGE_KEYS.attempts)
+  await next.user.click(
+    within(screen.getByRole('navigation')).getByRole('link', {
+      name: 'Settings',
+    }),
+  )
+  await next.user.click(
+    screen.getByRole('checkbox', { name: 'Encouraging messages' }),
+  )
+  await next.user.click(screen.getByRole('link', { name: 'Continue Practice' }))
+  expect(
+    screen.getByRole('status', { name: 'Practice encouragement' }),
+  ).toHaveTextContent('Take your time.')
+  expect(screen.getByText('Your answer').nextElementSibling).toHaveTextContent(
+    answer.getAttribute('aria-label')!.replace('Answer ', ''),
+  )
+  expect(localStorage.getItem(STORAGE_KEYS.attempts)).toBe(before)
+})
+
 test('loads safe defaults and saves every visible setting automatically across remounts', async () => {
   const { user, unmount } = renderApp()
   expect(document.title).toBe('Settings | Math Practice')

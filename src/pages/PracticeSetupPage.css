@@ -5,7 +5,7 @@
 
 .setup-heading h1 {
   margin-block: 0.75rem;
-  font-size: clamp(2rem, 3.8vw, 2.9rem);
+  font-size: var(--page-title-size);
   letter-spacing: -0.07rem;
 }
 

@@ -50,6 +50,8 @@ export function isAppSettings(value: unknown): value is AppSettings {
     typeof value.soundEnabled === 'boolean' &&
     typeof value.animationsEnabled === 'boolean' &&
     typeof value.showExplanations === 'boolean' &&
+    (value.feedbackEnabled === undefined ||
+      typeof value.feedbackEnabled === 'boolean') &&
     [5, 10, 20, 'continuous'].includes(value.defaultSessionLength as number) &&
     isDifficultyLevel(value.defaultDifficulty) &&
     operations(value.defaultOperations) &&

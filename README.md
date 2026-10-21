@@ -6,7 +6,7 @@ TypeScript, and Vite. Requirements and the development checklist are in
 
 ## Current scope
 
-Phases 1–15 establish the development tools, shared domain types, responsive
+Phases 1–17 establish the development tools, shared domain types, responsive
 application layout, home page, routing, practice configuration, and a tested
 question-generation service with multiple-choice answers and interactive cards.
 Students can configure practice, select an answer, flip a card, and mark how they
@@ -18,7 +18,9 @@ mistake/mastery statistics with a confirmed reset. Application settings control 
 animation, explanations, and practice defaults. Self-reported mistakes create
 deduplicated, persistent patterns. A similar-question service generates related
 review questions within the original difficulty. Personalized review sessions
-prioritize active mistakes and persist self-reported mastery progress.
+prioritize active mistakes and persist self-reported mastery progress. Practice
+also includes focused-card number shortcuts, accessible announcements, centered
+responsive cards, and optional encouraging messages after recorded self-reports.
 
 ## Setup
 
@@ -48,6 +50,13 @@ Other commands:
 - `npm run format`: format source and configuration files.
 - `npm run test:watch`: rerun tests as files change.
 - `npm run preview`: serve the production build after `npm run build`.
+- `npm run check:responsive`: launch a temporary Vite server and isolated Chrome
+  profile to check desktop, tablet, mobile, touch targets, and session behavior.
+  Requires Chrome or Chromium; use `CHROME_BIN` for a custom executable path.
+
+See [the responsive checks and visual changes](docs/responsive-checks.md) for
+screen sizes, optional screenshots, and manual device checks. The remaining
+manual accessibility checks are listed in [the accessibility audit](docs/accessibility-audit.md).
 
 ESLint checks JavaScript, TypeScript, React hooks, and Fast Refresh exports.
 Prettier handles formatting; the supplied assignment documents retain their

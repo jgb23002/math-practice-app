@@ -1,10 +1,11 @@
 .statistics-page {
   display: grid;
-  gap: 2.4rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--section-gap);
 }
 .statistics-page h1 {
   margin-block: 0.8rem;
-  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-size: var(--page-title-size);
   letter-spacing: -0.07rem;
 }
 .statistics-page h2 {
@@ -95,7 +96,8 @@
   padding: 1.3rem;
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  background: #fffefb;
+  background: var(--surface);
+  box-shadow: 0 4px 0 #e9ede3;
 }
 .statistics-card__heading {
   display: flex;
@@ -152,7 +154,7 @@
 }
 .session-history-card__plan {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.8rem;
   margin-block: 1.2rem;
 }
@@ -172,7 +174,7 @@
 }
 .statistics-reset {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 1rem;
   padding: 1.5rem;
@@ -211,7 +213,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-@media (max-width: 46.875em) {
+@media (max-width: 56.25em) {
   .statistics-page__heading {
     flex-direction: column;
     align-items: flex-start;

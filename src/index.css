@@ -16,6 +16,10 @@
   --blue-dark: #2943a3;
   --line: #e4e8dc;
   --radius: 1.5rem;
+  --surface: #fffefb;
+  --section-gap: clamp(1.5rem, 3vw, 2.5rem);
+  --page-title-size: clamp(2rem, 4vw, 3rem);
+  --touch-target: max(48px, 3rem);
 }
 
 * {

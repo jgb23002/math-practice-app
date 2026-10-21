@@ -695,33 +695,35 @@ Verification: see [accessibility-audit.md](accessibility-audit.md). Browser zoom
 
 ### 70. Optimize for Tablets
 
-- [ ] Use large touch targets.
-- [ ] Center the practice card.
-- [ ] Keep answer choices easy to reach.
-- [ ] Test portrait and landscape orientations.
+- [x] Use large touch targets.
+- [x] Center the practice card.
+- [x] Keep answer choices easy to reach.
+- [x] Test portrait and landscape orientations.
 
 ### 71. Optimize for Mobile Devices
 
-- [ ] Stack answer choices when necessary.
-- [ ] Adjust card width.
-- [ ] Prevent horizontal scrolling.
-- [ ] Simplify navigation.
-- [ ] Test on common small-screen sizes.
+- [x] Stack answer choices when necessary.
+- [x] Adjust card width.
+- [x] Prevent horizontal scrolling.
+- [x] Simplify navigation.
+- [x] Test on common small-screen sizes.
 
 ### 72. Optimize the Statistics Layout
 
-- [ ] Convert wide tables to cards on small screens.
-- [ ] Prevent labels and values from overlapping.
-- [ ] Keep recent sessions readable.
-- [ ] Support horizontal scrolling only when necessary.
+- [x] Convert wide tables to cards on small screens.
+- [x] Prevent labels and values from overlapping.
+- [x] Keep recent sessions readable.
+- [x] Support horizontal scrolling only when necessary.
 
 ### 73. Add Child-Friendly Feedback
 
-- [ ] Add positive feedback messages.
-- [ ] Add supportive messages after mistakes.
-- [ ] Avoid shaming language.
-- [ ] Randomize feedback without becoming distracting.
-- [ ] Add an option to disable feedback effects.
+- [x] Add positive feedback messages.
+- [x] Add supportive messages after mistakes.
+- [x] Avoid shaming language.
+- [x] Randomize feedback without becoming distracting.
+- [x] Add an option to disable feedback effects.
+
+Verification: see [responsive-checks.md](responsive-checks.md) for viewport coverage, repeatable checks, feedback preferences, and manual device checks.
 
 ---
 

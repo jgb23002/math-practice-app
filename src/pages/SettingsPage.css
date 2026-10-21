@@ -1,11 +1,11 @@
 .settings-page {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: 2.4rem;
+  gap: var(--section-gap);
 }
 .settings-page h1 {
   margin-block: 0.8rem;
-  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-size: var(--page-title-size);
   letter-spacing: -0.07rem;
 }
 .settings-page h2 {

@@ -2,6 +2,7 @@ import { Navigate } from 'react-router'
 import ButtonLink from '../components/common/ButtonLink'
 import Icon from '../components/common/Icon'
 import PracticePlan from '../components/practice/PracticePlan'
+import PracticeFeedback from '../components/practice/PracticeFeedback'
 import QuestionCard from '../components/practice/QuestionCard'
 import SessionTotals from '../components/practice/SessionTotals'
 import usePageTitle from '../hooks/usePageTitle'
@@ -32,21 +33,10 @@ function ConfiguredCard({
   return (
     <div className="practice-page__layout">
       <div className="practice-page__card-area">
-        <label className="practice-page__animation-setting">
-          <input
-            type="checkbox"
-            checked={animationsEnabled}
-            onChange={(event) =>
-              patchSettings({
-                animationsEnabled: event.target.checked,
-              })
-            }
-          />
-          <span>
-            Card animation{' '}
-            <small>Turn off to switch sides without motion.</small>
-          </span>
-        </label>
+        <PracticeFeedback
+          attempt={session.attempts.at(-1)}
+          enabled={progress.settings.feedbackEnabled !== false}
+        />
         {question ? (
           <QuestionCard
             question={question}
@@ -94,21 +84,30 @@ function ConfiguredCard({
             </button>
           </div>
         )}
-        <p className="practice-page__encouragement">
-          <Icon name="heart" />
-          {session.attempted > 0
-            ? 'Thanks for checking your work! Keep being curious.'
-            : 'Take your time. Every little try helps you grow.'}
-        </p>
+        <label className="practice-page__animation-setting">
+          <input
+            type="checkbox"
+            checked={animationsEnabled}
+            onChange={(event) =>
+              patchSettings({ animationsEnabled: event.target.checked })
+            }
+          />
+          <span>
+            Card animation{' '}
+            <small>Turn off to switch sides without motion.</small>
+          </span>
+        </label>
       </div>
       <aside
         className="practice-page__plan"
         aria-labelledby="practice-plan-heading"
       >
-        <span className="practice-page__star" aria-hidden="true">
-          ✦
-        </span>
-        <h2 id="practice-plan-heading">Your practice plan</h2>
+        <div className="practice-page__plan-heading">
+          <span className="practice-page__star" aria-hidden="true">
+            ✦
+          </span>
+          <h2 id="practice-plan-heading">Your practice plan</h2>
+        </div>
         <PracticePlan
           {...configuration}
           label="Your selected practice configuration"
@@ -123,22 +122,24 @@ function ConfiguredCard({
           <li>Flip and check.</li>
           <li>Tell us how you did.</li>
         </ol>
-        <ButtonLink
-          to="/practice/setup"
-          state={{ editSession: true }}
-          variant="secondary"
-        >
-          Explore Practice <Icon name="arrow" />
-        </ButtonLink>
-        {session.sessionLength === 'continuous' && (
-          <button
-            type="button"
-            className="button button--secondary practice-page__end"
-            onClick={endSession}
+        <div className="practice-page__plan-actions">
+          <ButtonLink
+            to="/practice/setup"
+            state={{ editSession: true }}
+            variant="secondary"
           >
-            End Session
-          </button>
-        )}
+            Explore Practice <Icon name="arrow" />
+          </ButtonLink>
+          {session.sessionLength === 'continuous' && (
+            <button
+              type="button"
+              className="button button--secondary practice-page__end"
+              onClick={endSession}
+            >
+              End Session
+            </button>
+          )}
+        </div>
       </aside>
     </div>
   )

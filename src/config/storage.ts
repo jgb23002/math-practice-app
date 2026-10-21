@@ -17,6 +17,7 @@ export function createDefaultSettings(): AppSettings {
     soundEnabled: false,
     animationsEnabled: true,
     showExplanations: true,
+    feedbackEnabled: true,
     defaultSessionLength: 10,
     defaultDifficulty: 1,
     defaultOperations: [],

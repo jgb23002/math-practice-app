@@ -76,6 +76,7 @@ test('redirects to setup when the practice route has no valid session', () => {
 })
 
 test('persists results only after a self-report, never on selection or reveal', async () => {
+  vi.spyOn(Math, 'random').mockReturnValue(0)
   const generator = mockQuestions()
   const save = vi.spyOn(Storage.prototype, 'setItem')
   const user = await startPractice()
@@ -88,13 +89,11 @@ test('persists results only after a self-report, never on selection or reveal', 
   await user.click(screen.getByRole('button', { name: 'Flip Card' }))
   expectTotals(0, 0, 0)
   expect(
-    screen.queryByText(/Thanks for checking your work! Keep being curious/),
-  ).not.toBeInTheDocument()
+    screen.getByRole('status', { name: 'Practice encouragement' }),
+  ).toHaveTextContent('Take your time.')
   expect(save).not.toHaveBeenCalled()
   await user.click(screen.getByRole('button', { name: 'I Got It Right' }))
-  expect(
-    screen.getByText('Thanks for checking your work! Keep being curious.'),
-  ).toBeVisible()
+  expect(screen.getByText('Nice work! Keep being curious.')).toBeVisible()
   expect(save).toHaveBeenCalledWith(
     'mathPractice.attempts',
     expect.stringContaining('"selfReportedCorrect":true'),
@@ -104,6 +103,31 @@ test('persists results only after a self-report, never on selection or reveal', 
   expect(screen.getByText('Question 2 of 10')).toBeVisible()
   expect(screen.getByRole('button', { name: 'Flip Card' })).toBeDisabled()
   expect(screen.getByRole('heading', { name: '4 + 4 = ?' })).toHaveFocus()
+})
+
+test('encouragement follows a wrong self-report even when the selected option was correct', async () => {
+  mockQuestions()
+  vi.spyOn(Math, 'random').mockReturnValue(0)
+  const user = await startPractice()
+  await user.click(screen.getByRole('button', { name: 'Answer 7' }))
+  await user.click(screen.getByRole('button', { name: 'Flip Card' }))
+  expect(
+    screen.getByRole('status', { name: 'Practice encouragement' }),
+  ).toHaveTextContent('Take your time.')
+  await user.click(screen.getByRole('button', { name: 'I Got It Wrong' }))
+  expect(
+    screen.getByRole('status', { name: 'Practice encouragement' }),
+  ).toHaveTextContent('Tricky facts take practice. You can try again!')
+  expectTotals(1, 0, 1)
+  const feedback = screen.getByRole('status', {
+    name: 'Practice encouragement',
+  }).textContent
+  await user.click(screen.getByRole('button', { name: 'Answer 8' }))
+  await user.click(screen.getByRole('button', { name: 'Flip Card' }))
+  expect(
+    screen.getByRole('status', { name: 'Practice encouragement' }),
+  ).toHaveTextContent(feedback!)
+  expectTotals(1, 0, 1)
 })
 
 test('hides fixed progress for a continuous plan', async () => {

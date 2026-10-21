@@ -1,15 +1,12 @@
 import { useEffect, useRef, useState, type Ref } from 'react'
 import useReducedMotion from '../../hooks/useReducedMotion'
 import type { Question } from '../../types/question'
+import type { QuestionResult } from '../../types/session'
 import CardBack from './CardBack'
 import CardFront from './CardFront'
 import './QuestionCard.css'
 
-export interface QuestionCardResult {
-  questionId: string
-  selectedAnswer: number
-  selfReportedCorrect: boolean
-}
+export type QuestionCardResult = QuestionResult
 
 interface QuestionCardProps {
   question: Question
@@ -17,6 +14,10 @@ interface QuestionCardProps {
   totalQuestions?: number
   animationsEnabled?: boolean
   onSelfReport: (result: QuestionCardResult) => void
+  onAnswerSelect?: (answer: number) => void
+  onReveal?: (answer: number) => void
+  initialSelectedAnswer?: number | null
+  initiallyRevealed?: boolean
 }
 
 interface QuestionCardAttemptProps extends QuestionCardProps {
@@ -30,9 +31,19 @@ function QuestionCardAttempt({
   animationsEnabled = true,
   onSelfReport,
   frontHeadingRef,
+  onAnswerSelect,
+  onReveal,
+  initialSelectedAnswer = null,
+  initiallyRevealed = false,
 }: QuestionCardAttemptProps) {
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
-  const [isCardFlipped, setIsCardFlipped] = useState(false)
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(
+    initialSelectedAnswer,
+  )
+  const [isCardFlipped, setIsCardFlipped] = useState(
+    initiallyRevealed && initialSelectedAnswer !== null,
+  )
+  const selectedAnswerRef = useRef(initialSelectedAnswer)
+  const flippedRef = useRef(initiallyRevealed && initialSelectedAnswer !== null)
   const [selfReportedCorrect, setSelfReportedCorrect] = useState<
     boolean | null
   >(null)
@@ -45,22 +56,31 @@ function QuestionCardAttempt({
   }, [isCardFlipped])
 
   function selectAnswer(answer: number) {
-    if (!isCardFlipped && question.choices.includes(answer))
+    if (!flippedRef.current && question.choices.includes(answer)) {
+      selectedAnswerRef.current = answer
       setSelectedAnswer(answer)
+      onAnswerSelect?.(answer)
+    }
   }
 
   function flipCard() {
-    if (selectedAnswer !== null && !isCardFlipped) setIsCardFlipped(true)
+    const answer = selectedAnswerRef.current
+    if (answer !== null && !flippedRef.current) {
+      flippedRef.current = true
+      setIsCardFlipped(true)
+      onReveal?.(answer)
+    }
   }
 
   function reportResult(correct: boolean) {
-    if (!isCardFlipped || selectedAnswer === null || reported.current) return
+    const answer = selectedAnswerRef.current
+    if (!flippedRef.current || answer === null || reported.current) return
     // Lock synchronously, including rapid events before the next React render.
     reported.current = true
     setSelfReportedCorrect(correct)
     onSelfReport({
       questionId: question.id,
-      selectedAnswer,
+      selectedAnswer: answer,
       selfReportedCorrect: correct,
     })
   }

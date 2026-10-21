@@ -1,32 +1,34 @@
 import { useState } from 'react'
+import { Navigate } from 'react-router'
 import ButtonLink from '../components/common/ButtonLink'
 import Icon from '../components/common/Icon'
 import PracticePlan from '../components/practice/PracticePlan'
-import QuestionCard, {
-  type QuestionCardResult,
-} from '../components/practice/QuestionCard'
+import QuestionCard from '../components/practice/QuestionCard'
+import SessionTotals from '../components/practice/SessionTotals'
 import usePageTitle from '../hooks/usePageTitle'
 import usePracticeConfiguration from '../hooks/usePracticeConfiguration'
-import { generateQuestion } from '../services/questionGenerator'
 import type { PracticeConfiguration } from '../types/practiceConfiguration'
 import './PracticePage.css'
-
-function createCard(configuration: PracticeConfiguration) {
-  try {
-    return generateQuestion(configuration.operations, configuration.difficulty)
-  } catch {
-    return null
-  }
-}
 
 function ConfiguredCard({
   configuration,
 }: {
   configuration: PracticeConfiguration
 }) {
-  const [question, setQuestion] = useState(() => createCard(configuration))
+  const { session, dispatchSession } = usePracticeConfiguration()
   const [animationsEnabled, setAnimationsEnabled] = useState(true)
-  const [result, setResult] = useState<QuestionCardResult | null>(null)
+  if (!session) return null
+  const question = session.currentQuestion
+
+  function endSession() {
+    if (!session) return
+    if (
+      session.selectedAnswer !== null &&
+      !window.confirm('Finish practice? Your current card won’t be counted.')
+    )
+      return
+    dispatchSession({ type: 'end', sessionId: session.id })
+  }
   return (
     <div className="practice-page__layout">
       <div className="practice-page__card-area">
@@ -44,22 +46,44 @@ function ConfiguredCard({
         {question ? (
           <QuestionCard
             question={question}
-            questionNumber={1}
+            questionNumber={session.currentQuestionIndex + 1}
             totalQuestions={
               configuration.sessionLength === 'continuous'
                 ? undefined
                 : configuration.sessionLength
             }
             animationsEnabled={animationsEnabled}
-            onSelfReport={setResult}
+            initialSelectedAnswer={session.selectedAnswer}
+            initiallyRevealed={session.isAnswerRevealed}
+            onAnswerSelect={(answer) =>
+              dispatchSession({
+                type: 'select',
+                sessionId: session.id,
+                questionId: question.id,
+                answer,
+              })
+            }
+            onReveal={(answer) =>
+              dispatchSession({
+                type: 'reveal',
+                sessionId: session.id,
+                questionId: question.id,
+                answer,
+              })
+            }
+            onSelfReport={(result) =>
+              dispatchSession({ type: 'report', sessionId: session.id, result })
+            }
           />
         ) : (
           <div className="practice-page__recovery">
-            <p role="alert">That card got a little tangled. Let’s try again!</p>
+            <p role="alert">{session.questionError}</p>
             <button
               type="button"
               className="button button--primary"
-              onClick={() => setQuestion(createCard(configuration))}
+              onClick={() =>
+                dispatchSession({ type: 'retry', sessionId: session.id })
+              }
             >
               Try Again
             </button>
@@ -67,7 +91,7 @@ function ConfiguredCard({
         )}
         <p className="practice-page__encouragement">
           <Icon name="heart" />
-          {result
+          {session.attempted > 0
             ? 'Thanks for checking your work! Keep being curious.'
             : 'Take your time. Every little try helps you grow.'}
         </p>
@@ -84,6 +108,11 @@ function ConfiguredCard({
           {...configuration}
           label="Your selected practice configuration"
         />
+        <SessionTotals
+          attempted={session.attempted}
+          correct={session.correct}
+          incorrect={session.incorrect}
+        />
         <ol className="practice-page__steps">
           <li>Pick your answer.</li>
           <li>Flip and check.</li>
@@ -92,6 +121,15 @@ function ConfiguredCard({
         <ButtonLink to="/practice/setup" variant="secondary">
           Explore Practice <Icon name="arrow" />
         </ButtonLink>
+        {session.sessionLength === 'continuous' && (
+          <button
+            type="button"
+            className="button button--secondary practice-page__end"
+            onClick={endSession}
+          >
+            End Session
+          </button>
+        )}
       </aside>
     </div>
   )
@@ -99,7 +137,10 @@ function ConfiguredCard({
 
 function PracticePage() {
   usePageTitle('Practice session')
-  const { configuration } = usePracticeConfiguration()
+  const { configuration, session } = usePracticeConfiguration()
+  if (!configuration || !session)
+    return <Navigate to="/practice/setup" replace />
+  if (!session.isActive) return <Navigate to="/practice/summary" replace />
   return (
     <section className="practice-page">
       <div className="practice-page__heading">
@@ -109,26 +150,7 @@ function PracticePage() {
         <h1 id="page-heading">Your practice space</h1>
         <p>Pick an answer, flip your card, and see what you discover.</p>
       </div>
-      {configuration ? (
-        <ConfiguredCard
-          key={JSON.stringify(configuration)}
-          configuration={configuration}
-        />
-      ) : (
-        <div className="practice-page__empty">
-          <span className="practice-page__star" aria-hidden="true">
-            ✦
-          </span>
-          <h2>Let’s find your next challenge</h2>
-          <p>
-            Choose your math skills and level, then your first card will be
-            ready.
-          </p>
-          <ButtonLink to="/practice/setup">
-            Explore Practice <Icon name="arrow" />
-          </ButtonLink>
-        </div>
-      )}
+      <ConfiguredCard key={session.id} configuration={configuration} />
     </section>
   )
 }

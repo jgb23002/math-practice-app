@@ -148,6 +148,43 @@ test('zero is selectable and rapid result events cannot record both buttons', as
   })
 })
 
+test('a rapid answer change and flip reveal the latest selection and lock it immediately', async () => {
+  const user = userEvent.setup()
+  const onAnswerSelect = vi.fn()
+  const onReveal = vi.fn()
+  const onSelfReport = vi.fn()
+  render(
+    <QuestionCard
+      question={createQuestion()}
+      questionNumber={1}
+      onAnswerSelect={onAnswerSelect}
+      onReveal={onReveal}
+      onSelfReport={onSelfReport}
+    />,
+  )
+  await user.click(screen.getByRole('button', { name: 'Answer 7' }))
+  const six = screen.getByRole('button', { name: 'Answer 6' })
+  const nine = screen.getByRole('button', { name: 'Answer 9' })
+  const flip = screen.getByRole('button', { name: 'Flip Card' })
+  act(() => {
+    fireEvent.click(six)
+    fireEvent.click(flip)
+    fireEvent.click(nine)
+  })
+  expect(onReveal).toHaveBeenCalledExactlyOnceWith(6)
+  expect(onAnswerSelect).toHaveBeenCalledTimes(2)
+  expect(screen.getByText('Your answer').nextElementSibling).toHaveTextContent(
+    '6',
+  )
+  expect(onSelfReport).not.toHaveBeenCalled()
+  await user.click(screen.getByRole('button', { name: 'I Got It Right' }))
+  expect(onSelfReport).toHaveBeenCalledExactlyOnceWith({
+    questionId: 'question-one',
+    selectedAnswer: 6,
+    selfReportedCorrect: true,
+  })
+})
+
 test('resets the answer, flip, and report lock when the question ID changes', async () => {
   const { user, props, rerender, onSelfReport } = renderCard()
   await user.click(screen.getByRole('button', { name: 'Answer 6' }))

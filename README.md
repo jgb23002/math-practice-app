@@ -6,12 +6,13 @@ TypeScript, and Vite. Requirements and the development checklist are in
 
 ## Current scope
 
-Phases 1–6 establish the development tools, shared domain types, responsive
+Phases 1–7 establish the development tools, shared domain types, responsive
 application layout, home page, routing, practice configuration, and a tested
 question-generation service with multiple-choice answers and interactive cards.
 Students can configure practice, select an answer, flip a card, and mark how they
-did. Session advancement, totals, persistence, and full settings controls belong
-to later phases.
+did. Sessions advance automatically, keep self-reported totals and attempts in
+memory, and finish with a basic completion screen. Detailed summaries,
+persistence, and full settings controls belong to later phases.
 
 ## Setup
 
@@ -61,7 +62,7 @@ src/
 ├── config/                 # Practice options and arithmetic difficulty rules
 ├── hooks/                  # Titles, practice configuration, and reduced motion
 ├── pages/                  # Home, setup, practice card, placeholders, and fallback
-├── services/               # Arithmetic, distractors, and shuffled answer choices
+├── services/               # Arithmetic, answer choices, and session transitions
 ├── test/                   # Shared test setup
 ├── types/                  # Questions, sessions, mistakes, statistics, settings
 ├── utils/                  # Random integers, shuffling, IDs, and validation
@@ -70,23 +71,24 @@ src/
 ```
 
 Empty feature folders contain `.gitkeep` placeholders. Card interaction state is
-local to the question. Session history, statistics calculations, and persisted
-settings are not implemented yet.
+keyed to the question, and the session context retains selection, reveal state,
+and attempts while the app remains open. Cross-session history, statistics
+calculations, and persisted settings are not implemented yet.
 
 ## Routes and navigation
 
 React Router's `BrowserRouter` wraps the application in `src/main.tsx`.
 `src/app/AppRoutes.tsx` defines the following routes:
 
-| Route               | Page                                        |
-| ------------------- | ------------------------------------------- |
-| `/`                 | Home                                        |
-| `/practice/setup`   | Practice configuration form                 |
-| `/practice/session` | Interactive card and selected practice plan |
-| `/practice/summary` | Session summary placeholder                 |
-| `/statistics`       | Statistics placeholder                      |
-| `/settings`         | Settings placeholder                        |
-| Any unmatched path  | Friendly fallback with a return-home link   |
+| Route               | Page                                      |
+| ------------------- | ----------------------------------------- |
+| `/`                 | Home                                      |
+| `/practice/setup`   | Practice configuration form               |
+| `/practice/session` | Active session, or redirect to setup      |
+| `/practice/summary` | Completed-session totals                  |
+| `/statistics`       | Statistics placeholder                    |
+| `/settings`         | Settings placeholder                      |
+| Any unmatched path  | Friendly fallback with a return-home link |
 
 Navigation actions use real links styled as large buttons, so browser history and
 standard keyboard interaction work. The layout includes a skip link, visible
@@ -117,14 +119,14 @@ on form submission and at the shared-state boundary.
 `AppProvider` stores a validated `PracticeConfiguration` snapshot in React
 Context. The session page displays that plan, and returning to setup restores
 the choices for editing. Local draft changes do not alter the saved plan until
-Start Session is selected again. The practice page generates a first card from
-that plan. Configuration is held in memory; refresh recovery and local-storage
-persistence belong to later phases.
+Start Session is selected again. Starting creates a unique session and generates
+the first card from that plan. Configuration is held in memory; refresh recovery
+and local-storage persistence belong to later phases.
 
 The configuration model uses a nonempty operations tuple, one of the four
 difficulty levels, and a length of 5, 10, 20, or `continuous`. It is separate from
-the session-history model. The practice page currently presents one card; it
-does not initialize session counters or start a continuous question loop.
+the session-history model. Finite sessions contain 5, 10, or 20 recorded attempts;
+continuous sessions keep generating cards until the student ends practice.
 
 Tests cover individual/mixed selection, exclusive radio choices, validation,
 configuration transfer and restoration, keyboard interaction, and protection
@@ -275,20 +277,65 @@ motion is observed initially and when it changes; CSS also applies the preferenc
 A **Card animation** checkbox disables the flip effect for the current practice
 view. This setting is held in memory and cannot override device reduced motion.
 
-The practice page displays the first generated card and acknowledges the child's
-self-report in memory. It offers setup when no plan exists and a retry action
-when generation fails. Full session advancement, attempt history, and totals
-remain Phase 7; nothing is written to local storage in this phase.
+The card emits selection and reveal callbacks separately from self-reports.
+Session-backed cards restore their selected answer and reveal state when the
+student returns from another page. Synchronous interaction locks keep rapid
+answer changes, flips, and repeated reports consistent even in one React batch.
 
 Component and integration tests cover selection changes, zero answers, flip
 gating, explanations, self-report semantics, duplicate prevention, reset and
 focus behavior, keyboard navigation, reduced-motion changes, listener cleanup,
 animation settings, progress, generation recovery, and absence of storage writes.
 
+## Practice sessions
+
+`src/services/practiceSession.ts` creates sessions and applies explicit actions
+for selecting, revealing, reporting, retrying, and ending. Each session stores a
+unique ID, start/completion timestamps, operations, difficulty, session length,
+zero-based question index, active state, totals, and completed attempts. Each
+attempt retains its question data, selected answer, self-reported result, IDs,
+and timestamp. Session totals always satisfy `attempted = correct + incorrect`.
+
+`AppProvider` owns the session in Context. Its synchronous snapshot is committed
+before React renders so multiple callbacks in the same batch cannot record the
+same question twice. Transitions reject stale session/question IDs, answers that
+do not match the selection, reports before reveal, and already-recorded attempts.
+Question generation and ID creation run outside React state updater callbacks.
+
+Only a valid self-report appends an attempt and changes the totals. It then
+generates the next card, increments the question position, and clears selection
+and reveal state. The existing question-ID reset restores the card front and
+focus. A short fade introduces new cards; reduced motion and the animation
+setting disable it.
+
+Repeat avoidance tries at most eight questions. It treats reversed addition and
+multiplication operands as the same fact. If every sampled question repeats the
+previous fact, it uses a valid repeated fact with a fresh ID rather than looping.
+Generated questions are checked against the session's operations and difficulty.
+A generation failure shows a retry action without losing or recounting the
+completed attempt.
+
+Finite sessions stop immediately after their configured attempt count, record a
+completion timestamp, and navigate to a basic summary of attempted, correct, and
+incorrect totals. Continuous sessions omit fixed progress and offer **End Session**.
+Ending with a selected but unreported card asks for confirmation; the unfinished
+card is excluded from the summary. An empty session can end with zero attempts.
+Detailed summary fields and actions remain Phase 8.
+
+Direct navigation without a session redirects to setup. Completed sessions go to
+their summary, and opening the summary during active practice returns to the
+current card. Sessions survive route changes in memory; refresh starts with no
+session and redirects to setup. Nothing is written to local storage in Phase 7.
+
+Tests cover all finite lengths, continuous practice beyond 20 attempts, exact
+completion, disagreement with arithmetic correctness, rapid and stale callbacks,
+Strict Mode batching, selection/reveal gating, repeat exhaustion, duplicate IDs,
+generation recovery, navigation resume, and pending-card end confirmation.
+
 ## Shared types
 
 - `question.ts`: operations, difficulty levels, question sources, and questions.
-- `session.ts`: session length, practice attempts, and practice sessions.
+- `session.ts`: sessions, attempts, runtime state, self-reports, and session actions.
 - `practiceConfiguration.ts`: validated choices passed from setup to session state.
 - `mistake.ts`: mistake patterns and mastery progress.
 - `statistics.ts`: overall, operation, and difficulty totals.

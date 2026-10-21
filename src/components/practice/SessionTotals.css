@@ -1,0 +1,26 @@
+.session-totals {
+  display: grid;
+  gap: 0.6rem;
+  margin-block: 1.3rem;
+}
+
+.session-totals > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #d2dfca;
+  border-radius: 0.8rem;
+  background: #fffefb;
+}
+
+.session-totals dt {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.session-totals dd {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 800;
+}

@@ -50,8 +50,8 @@ test('welcomes children with the application title and three main actions', () =
 test.each([
   ['/', 'A little practice. A big adventure.', 'Home'],
   ['/practice/setup', 'Your next math adventure', 'Practice'],
-  ['/practice/session', 'Your practice space', 'Practice'],
-  ['/practice/summary', 'A place to celebrate', 'Practice'],
+  ['/practice/session', 'Your next math adventure', 'Practice'],
+  ['/practice/summary', 'Your next math adventure', 'Practice'],
   ['/statistics', 'See how you grow', 'Statistics'],
   ['/settings', 'Make it feel like you', 'Settings'],
 ])(
@@ -76,11 +76,7 @@ test.each([
     ).toHaveLength(1)
     expect(screen.getByRole('contentinfo')).toBeVisible()
 
-    if (
-      path !== '/' &&
-      path !== '/practice/setup' &&
-      path !== '/practice/session'
-    ) {
+    if (path === '/statistics' || path === '/settings') {
       expect(screen.getByText('Coming soon')).toBeVisible()
     }
   },

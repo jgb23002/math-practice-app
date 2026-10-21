@@ -130,6 +130,28 @@
   cursor: pointer;
 }
 
+.practice-page__end {
+  margin-top: 0.75rem;
+  cursor: pointer;
+}
+
+.practice-page .question-card__face--front {
+  animation: session-card-arrive 180ms ease-out;
+}
+
+.practice-page .question-card--static .question-card__face {
+  animation: none;
+}
+
+@keyframes session-card-arrive {
+  from {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @media (max-width: 900px) {
   .practice-page__layout {
     grid-template-columns: minmax(0, 1fr);

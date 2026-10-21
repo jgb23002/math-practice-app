@@ -13,8 +13,10 @@ import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { checkSessionRecovery } from './session-recovery-checks.mjs'
 
 const root = fileURLToPath(new URL('../', import.meta.url))
+const recoveryOnly = process.env.SESSION_RECOVERY_ONLY === '1'
 const screenshotDir = process.env.RESPONSIVE_SCREENSHOT_DIR
 const sizes = [
   [1440, 900],
@@ -142,7 +144,7 @@ async function inspect(label) {
   const result = await evaluate(`(() => {
     const visible = el => !el.closest('[inert], .visually-hidden, .math-friends, .skip-link') && el.getBoundingClientRect().width > 0 && getComputedStyle(el).visibility !== 'hidden';
     const describe = el => ({ tag: el.tagName, class: el.getAttribute('class'), text: (el.getAttribute('aria-label') || el.textContent).trim().slice(0, 90) });
-    const overflow = Array.from(document.querySelectorAll('main *, header *, footer *')).filter(el => visible(el) && getComputedStyle(el).display !== 'inline' && el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 2).map(describe);
+    const overflow = Array.from(document.querySelectorAll('main *, header *, footer *, dialog, dialog *, .session-recovery-notice, .session-recovery-notice *')).filter(el => visible(el) && getComputedStyle(el).display !== 'inline' && el.clientWidth > 0 && el.scrollWidth > el.clientWidth + 2).map(describe);
     const smallTargets = Array.from(document.querySelectorAll('button, a[href], input, select')).filter(el => visible(el) && !el.disabled).filter(el => {
       const rect = (el.closest('label') ?? el).getBoundingClientRect();
       return rect.width < 48 || rect.height < 48;
@@ -187,7 +189,9 @@ async function inspect(label) {
   checks++
   if (
     screenshotDir &&
-    /home|card-front|card-back|statistics-active|summary/.test(label)
+    /home|card-front|card-back|statistics-active|summary|leave-dialog/.test(
+      label,
+    )
   ) {
     await mkdir(resolve(screenshotDir), { recursive: true })
     const { cssContentSize } = await send('Page.getLayoutMetrics')
@@ -285,9 +289,20 @@ try {
     () => evaluate(`!!document.querySelector('main h1')`),
     'application',
   )
-  await route('/statistics')
-  await inspect('empty-statistics')
-  await evaluate(`(async () => {
+  if (recoveryOnly) {
+    await checkSessionRecovery({
+      send,
+      evaluate,
+      until,
+      click,
+      inspect,
+      socket,
+      origin,
+    })
+  } else {
+    await route('/statistics')
+    await inspect('empty-statistics')
+    await evaluate(`(async () => {
     const { createStatisticsProgress } = await import('/src/test/statisticsFixtures.ts');
     const { createMistakePattern } = await import('/src/test/mistakeFixtures.ts');
     const { saveStoredProgress } = await import('/src/services/progressPersistence.ts');
@@ -299,148 +314,149 @@ try {
     progress.mistakePatterns = [createMistakePattern({incorrectCount: 9, similarCorrectCount: 2}), createMistakePattern({id:'mastered', firstOperand:4, secondOperand:3, mastered:true, similarCorrectCount:3})];
     if (!saveStoredProgress(createJsonStorage(), progress)) throw new Error('Invalid responsive fixtures');
   })()`)
-  await send('Page.reload')
-  await until(
-    () =>
-      evaluate(`document.querySelectorAll('.mistake-pattern').length === 1`),
-    'populated statistics',
-  )
-
-  for (const [width, height] of sizes) {
-    const size = `${width}x${height}`
-    await send('Emulation.setDeviceMetricsOverride', {
-      width,
-      height,
-      deviceScaleFactor: 1,
-      mobile: width < 600,
-      screenOrientation: {
-        type: width > height ? 'landscapePrimary' : 'portraitPrimary',
-        angle: width > height ? 90 : 0,
-      },
-    })
-    await send('Emulation.setTouchEmulationEnabled', {
-      enabled: width < 1200,
-      maxTouchPoints: 5,
-    })
-    for (const [path, label] of [
-      ['/', 'home'],
-      ['/practice/setup', 'setup'],
-      ['/settings', 'settings'],
-      ['/statistics', 'statistics-active'],
-      ['/not-a-page', 'fallback'],
-    ]) {
-      await route(path)
-      await inspect(`${size}-${label}`)
-    }
-    await route('/statistics')
-    await click('.mistake-statistics__filters button:nth-child(2)')
-    await inspect(`${size}-statistics-mastered`)
-    await route('/practice/setup')
-    await click('.setup-start')
+    await send('Page.reload')
     await until(
       () =>
-        evaluate(
-          `location.pathname === '/practice/session' && !!document.querySelector('.question-card')`,
-        ),
-      'new session',
+        evaluate(`document.querySelectorAll('.mistake-pattern').length === 1`),
+      'populated statistics',
     )
-    await inspect(`${size}-card-front`)
-    if (width <= 420)
+
+    for (const [width, height] of sizes) {
+      const size = `${width}x${height}`
+      await send('Emulation.setDeviceMetricsOverride', {
+        width,
+        height,
+        deviceScaleFactor: 1,
+        mobile: width < 600,
+        screenOrientation: {
+          type: width > height ? 'landscapePrimary' : 'portraitPrimary',
+          angle: width > height ? 90 : 0,
+        },
+      })
+      await send('Emulation.setTouchEmulationEnabled', {
+        enabled: width < 1200,
+        maxTouchPoints: 5,
+      })
+      for (const [path, label] of [
+        ['/', 'home'],
+        ['/practice/setup', 'setup'],
+        ['/settings', 'settings'],
+        ['/statistics', 'statistics-active'],
+        ['/not-a-page', 'fallback'],
+      ]) {
+        await route(path)
+        await inspect(`${size}-${label}`)
+      }
+      await route('/statistics')
+      await click('.mistake-statistics__filters button:nth-child(2)')
+      await inspect(`${size}-statistics-mastered`)
+      await route('/practice/setup')
+      await click('.setup-start')
+      await until(
+        () =>
+          evaluate(
+            `location.pathname === '/practice/session' && !!document.querySelector('.question-card')`,
+          ),
+        'new session',
+      )
+      await inspect(`${size}-card-front`)
+      if (width <= 420)
+        assert.equal(
+          await evaluate(
+            `new Set(Array.from(document.querySelectorAll('.answer-choice'), el => Math.round(el.getBoundingClientRect().left))).size`,
+          ),
+          1,
+          `${size}: answer choices should stack`,
+        )
+      const before = await evaluate(
+        `JSON.parse(localStorage.getItem('mathPractice.attempts')).length`,
+      )
+      await click('.answer-choice')
+      await inspect(`${size}-selected-answer`)
+      await click('.question-card__flip')
+      await inspect(`${size}-card-back`)
       assert.equal(
         await evaluate(
-          `new Set(Array.from(document.querySelectorAll('.answer-choice'), el => Math.round(el.getBoundingClientRect().left))).size`,
+          `JSON.parse(localStorage.getItem('mathPractice.attempts')).length`,
         ),
-        1,
-        `${size}: answer choices should stack`,
+        before,
+        'Selecting/revealing must not record results',
       )
-    const before = await evaluate(
-      `JSON.parse(localStorage.getItem('mathPractice.attempts')).length`,
-    )
-    await click('.answer-choice')
-    await inspect(`${size}-selected-answer`)
-    await click('.question-card__flip')
-    await inspect(`${size}-card-back`)
-    assert.equal(
-      await evaluate(
-        `JSON.parse(localStorage.getItem('mathPractice.attempts')).length`,
-      ),
-      before,
-      'Selecting/revealing must not record results',
-    )
-    // Rotate a revealed card: CSS changes must not reset it or write progress.
-    const selected = await evaluate(
-      `document.querySelector('.question-card__answers > div:last-child dd').textContent`,
-    )
-    const stored = await evaluate('JSON.stringify(localStorage)')
-    await send('Emulation.setDeviceMetricsOverride', {
-      width: height,
-      height: width,
-      deviceScaleFactor: 1,
-      mobile: width < 600,
-    })
-    assert.equal(
-      await evaluate(
-        `document.querySelector('.question-card').dataset.flipped`,
-      ),
-      'true',
-    )
-    assert.equal(
-      await evaluate(
+      // Rotate a revealed card: CSS changes must not reset it or write progress.
+      const selected = await evaluate(
         `document.querySelector('.question-card__answers > div:last-child dd').textContent`,
-      ),
-      selected,
-    )
-    assert.equal(
-      await evaluate('JSON.stringify(localStorage)'),
-      stored,
-      'Rotation must not write progress',
-    )
-    await inspect(`${size}-rotated-card`)
-    await send('Emulation.setDeviceMetricsOverride', {
-      width,
-      height,
-      deviceScaleFactor: 1,
-      mobile: width < 600,
-    })
-    for (let index = 0; index < 5; index++) {
-      if (index > 0) {
-        await click('.answer-choice')
-        await click('.question-card__flip')
+      )
+      const stored = await evaluate('JSON.stringify(localStorage)')
+      await send('Emulation.setDeviceMetricsOverride', {
+        width: height,
+        height: width,
+        deviceScaleFactor: 1,
+        mobile: width < 600,
+      })
+      assert.equal(
+        await evaluate(
+          `document.querySelector('.question-card').dataset.flipped`,
+        ),
+        'true',
+      )
+      assert.equal(
+        await evaluate(
+          `document.querySelector('.question-card__answers > div:last-child dd').textContent`,
+        ),
+        selected,
+      )
+      assert.equal(
+        await evaluate('JSON.stringify(localStorage)'),
+        stored,
+        'Rotation must not write progress',
+      )
+      await inspect(`${size}-rotated-card`)
+      await send('Emulation.setDeviceMetricsOverride', {
+        width,
+        height,
+        deviceScaleFactor: 1,
+        mobile: width < 600,
+      })
+      for (let index = 0; index < 5; index++) {
+        if (index > 0) {
+          await click('.answer-choice')
+          await click('.question-card__flip')
+        }
+        await click(
+          index % 2
+            ? '.question-card__report--wrong'
+            : '.question-card__report--right',
+        )
       }
-      await click(
-        index % 2
-          ? '.question-card__report--wrong'
-          : '.question-card__report--right',
+      await until(
+        () => evaluate(`location.pathname === '/practice/summary'`),
+        'session summary',
+      )
+      await inspect(`${size}-summary`)
+      assert.equal(
+        await evaluate(
+          `JSON.parse(localStorage.getItem('mathPractice.attempts')).length`,
+        ),
+        before + 5,
+      )
+      assert.equal(
+        await evaluate(
+          `document.querySelector('.session-summary__accuracy strong').textContent`,
+        ),
+        '60%',
+      )
+      console.log(
+        `✓ ${size}: layout, touch targets, rotation, and complete session`,
       )
     }
-    await until(
-      () => evaluate(`location.pathname === '/practice/summary'`),
-      'session summary',
-    )
-    await inspect(`${size}-summary`)
-    assert.equal(
-      await evaluate(
-        `JSON.parse(localStorage.getItem('mathPractice.attempts')).length`,
-      ),
-      before + 5,
-    )
-    assert.equal(
-      await evaluate(
-        `document.querySelector('.session-summary__accuracy strong').textContent`,
-      ),
-      '60%',
-    )
-    console.log(
-      `✓ ${size}: layout, touch targets, rotation, and complete session`,
-    )
   }
   assert.deepEqual(browserErrors, [])
   console.log(
-    `Passed ${checks} responsive states. Tests used an isolated browser profile; existing application data was not accessed.`,
+    `Passed ${checks} ${recoveryOnly ? 'recovery dialog layouts and native browser checks' : 'responsive states'}. Tests used an isolated browser profile; existing application data was not accessed.`,
   )
 } catch (error) {
   console.error(
-    `Responsive check failed (${currentCase}): ${error.stack ?? error}\n${logs.slice(-1500)}`,
+    `${recoveryOnly ? 'Session recovery' : 'Responsive'} check failed (${currentCase}): ${error.stack ?? error}\n${logs.slice(-1500)}`,
   )
   process.exitCode = 1
 } finally {

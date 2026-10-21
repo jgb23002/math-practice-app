@@ -59,7 +59,7 @@ export interface SessionSummary {
   mistakeReviewCount: number
 }
 
-/** In-memory session state. The index is the zero-based next/current card position. */
+/** Runtime/recovery state. The index is the zero-based next/current card position. */
 export interface PracticeSessionState extends PracticeSession {
   sessionLength: PracticeSessionLength
   currentQuestionIndex: number

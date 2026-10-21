@@ -731,19 +731,21 @@ Verification: see [responsive-checks.md](responsive-checks.md) for viewport cove
 
 ### 74. Persist an Active Session
 
-- [ ] Save the active session.
-- [ ] Save the current question.
-- [ ] Save the selected answer when appropriate.
-- [ ] Restore the session after a page refresh.
-- [ ] Clear restored state when the session ends.
+- [x] Save the active session.
+- [x] Save the current question.
+- [x] Save the selected answer when appropriate.
+- [x] Restore the session after a page refresh.
+- [x] Clear restored state when the session ends.
 
 ### 75. Protect Against Accidental Navigation
 
-- [ ] Detect attempts to leave an active session.
-- [ ] Display a confirmation prompt.
-- [ ] Allow the user to continue the session.
-- [ ] Allow the user to end and leave the session.
-- [ ] Avoid showing warnings after session completion.
+- [x] Detect attempts to leave an active session.
+- [x] Display a confirmation prompt.
+- [x] Allow the user to continue the session.
+- [x] Allow the user to end and leave the session.
+- [x] Avoid showing warnings after session completion.
+
+Verification: see [session-recovery.md](session-recovery.md) for saved-state validation, duplicate prevention, navigation behavior, browser checks, and manual browser limitations.
 
 ---
 

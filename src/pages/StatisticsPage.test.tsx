@@ -1,6 +1,6 @@
+import TestRouter from '../test/TestRouter'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
 import { afterEach, expect, test, vi } from 'vitest'
 import App from '../app/App'
 import { STORAGE_KEYS } from '../config/storage'
@@ -21,9 +21,9 @@ function renderStatistics(
 ) {
   expect(saveStoredProgress(createJsonStorage(), progress)).toBe(true)
   const view = render(
-    <MemoryRouter initialEntries={['/statistics']}>
+    <TestRouter initialEntries={['/statistics']}>
       <App />
-    </MemoryRouter>,
+    </TestRouter>,
   )
   return { user: userEvent.setup(), ...view }
 }
@@ -232,9 +232,9 @@ test('keyboard-confirmed reset clears history persistently while preserving ever
   expect(localStorage.getItem('other.preference')).toBe('stay')
   unmount()
   render(
-    <MemoryRouter initialEntries={['/statistics']}>
+    <TestRouter initialEntries={['/statistics']}>
       <App />
-    </MemoryRouter>,
+    </TestRouter>,
   )
   expectMetrics(
     screen.getByRole('region', { name: 'All your practice' }),
@@ -294,9 +294,9 @@ test('statistics update only after self-reporting and show the current session w
   })
   const user = userEvent.setup()
   render(
-    <MemoryRouter initialEntries={['/practice/setup']}>
+    <TestRouter initialEntries={['/practice/setup']}>
       <App />
-    </MemoryRouter>,
+    </TestRouter>,
   )
   await user.click(screen.getByRole('checkbox', { name: 'Addition' }))
   await user.click(screen.getByRole('radio', { name: 'Level 1: Beginner' }))
@@ -305,6 +305,7 @@ test('statistics update only after self-reporting and show the current session w
   await user.click(screen.getByRole('button', { name: 'Flip Card' }))
   const nav = screen.getByRole('navigation', { name: 'Main navigation' })
   await user.click(within(nav).getByRole('link', { name: 'Statistics' }))
+  await user.click(screen.getByRole('button', { name: 'Leave for Now' }))
   expectMetrics(
     screen.getByRole('region', { name: 'All your practice' }),
     0,
@@ -320,6 +321,7 @@ test('statistics update only after self-reporting and show the current session w
   await user.click(screen.getByRole('link', { name: 'Continue Practice' }))
   await user.click(screen.getByRole('button', { name: 'I Got It Right' }))
   await user.click(within(nav).getByRole('link', { name: 'Statistics' }))
+  await user.click(screen.getByRole('button', { name: 'Leave for Now' }))
   expectMetrics(
     screen.getByRole('region', { name: 'All your practice' }),
     1,

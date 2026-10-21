@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import Icon from '../components/common/Icon'
+import ConfirmationDialog from '../components/common/ConfirmationDialog'
 import DifficultySelector from '../components/practice/DifficultySelector'
 import OperationSelector from '../components/practice/OperationSelector'
 import PracticePlan from '../components/practice/PracticePlan'
@@ -22,8 +23,13 @@ import './PracticeSetupPage.css'
 
 function PracticeSetupPage() {
   usePageTitle('Practice setup')
-  const { configuration, configureSession, progress } =
-    usePracticeConfiguration()
+  const {
+    configuration,
+    configureSession,
+    progress,
+    getActiveSession,
+    dispatchSession,
+  } = usePracticeConfiguration()
   const location = useLocation()
   const routeState = location.state as {
     editSession?: unknown
@@ -59,6 +65,8 @@ function PracticeSetupPage() {
           sessionLength: settings.defaultSessionLength,
         }
   const navigate = useNavigate()
+  const [confirmReplacement, setConfirmReplacement] = useState(false)
+  const replacing = useRef(false)
   const [mode, setMode] = useState<PracticeMode>(
     activePatterns.length > 0 && routeState?.mode !== 'regular'
       ? (initial.mode ?? 'regular')
@@ -100,11 +108,47 @@ function PracticeSetupPage() {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!isValid || !isValidPracticeConfiguration(candidate)) return
+    if (getActiveSession()) {
+      setConfirmReplacement(true)
+      return
+    }
     if (configureSession(candidate)) navigate('/practice/session')
   }
 
   return (
     <section className="setup-page">
+      {confirmReplacement && (
+        <ConfirmationDialog
+          title="Start a new practice?"
+          description="Your marked answers will stay in your history. Starting a new practice ends the current session. Its unfinished card won’t be counted."
+          onCancel={() => setConfirmReplacement(false)}
+        >
+          <button
+            type="button"
+            className="button button--primary"
+            onClick={() => setConfirmReplacement(false)}
+          >
+            Keep Current Session
+          </button>
+          <button
+            type="button"
+            className="button button--secondary"
+            onClick={() => {
+              if (replacing.current) return
+              replacing.current = true
+              const active = getActiveSession()
+              if (active) dispatchSession({ type: 'end', sessionId: active.id })
+              if (configureSession(candidate)) navigate('/practice/session')
+              else {
+                replacing.current = false
+                setConfirmReplacement(false)
+              }
+            }}
+          >
+            End and Start New
+          </button>
+        </ConfirmationDialog>
+      )}
       <div className="setup-heading">
         <p className="eyebrow">
           <Icon name="sparkles" /> Practice setup

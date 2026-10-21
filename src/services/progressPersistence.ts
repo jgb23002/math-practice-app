@@ -20,6 +20,9 @@ import {
 } from '../utils/storageValidation'
 import { recordMistakes, recoverMistakePatterns } from './mistakeTracking'
 import type { JsonStorage } from './storage'
+import { isSessionRecoverySnapshot } from '../utils/sessionRecoveryValidation'
+import { resolveSessionRecovery } from './sessionRecovery'
+import type { SessionRecoverySnapshot } from '../types/persistence'
 
 export { createEmptyStatistics } from '../utils/statistics'
 
@@ -156,8 +159,25 @@ export function saveStoredProgress(
 /** Observable save status for React's external-store subscription. */
 export function createProgressPersistence(storage: JsonStorage) {
   const loaded = loadStoredProgress(storage)
-  let warning = loaded.warning
-  let baselineWarning = loaded.warning
+  const recovery = storage.read(
+    STORAGE_KEYS.activeSession,
+    isSessionRecoverySnapshot,
+  )
+  const restored =
+    loaded.writable && recovery.status === 'valid'
+      ? resolveSessionRecovery(recovery.value, loaded.progress)
+      : { progress: loaded.progress, session: null }
+  const initial = restored.session
+    ? withSessionProgress(restored.progress, restored.session)
+    : restored.progress
+  let hasRecovery = recovery.status !== 'missing'
+  let warning =
+    recovery.status === 'invalid'
+      ? 'Your saved practice card couldn’t be restored. Your other progress is still here.'
+      : recovery.status === 'unavailable'
+        ? SAVE_WARNING
+        : loaded.warning
+  let baselineWarning = warning
   let writable = loaded.writable
   const listeners = new Set<() => void>()
   function publish(next: string | null) {
@@ -166,7 +186,8 @@ export function createProgressPersistence(storage: JsonStorage) {
     for (const listener of listeners) listener()
   }
   return {
-    initial: loaded.progress,
+    initial,
+    recoveredSession: restored.session?.isActive ? restored.session : null,
     getWarning: () => warning,
     subscribe: (listener: () => void) => {
       listeners.add(listener)
@@ -180,6 +201,37 @@ export function createProgressPersistence(storage: JsonStorage) {
       publish(saved ? baselineWarning : SAVE_WARNING)
       return saved
     },
+    saveSession: (
+      progress: StoredProgress,
+      session: PracticeSessionState | null,
+    ) => {
+      if (!writable) return false
+      // Write the complete checkpoint before any independent categories. If a
+      // later category write fails, recovery uses this consistent snapshot.
+      if (session?.isActive || hasRecovery) {
+        const snapshot: SessionRecoverySnapshot = {
+          version: 1,
+          progress,
+          session: session?.isActive ? session : null,
+        }
+        if (
+          !isSessionRecoverySnapshot(snapshot) ||
+          !storage.write(STORAGE_KEYS.activeSession, snapshot).ok
+        ) {
+          publish(SAVE_WARNING)
+          return false
+        }
+        hasRecovery = true
+      }
+      const saved = saveStoredProgress(storage, progress)
+      const cleared =
+        !session?.isActive && hasRecovery && saved
+          ? storage.remove(STORAGE_KEYS.activeSession).ok
+          : true
+      if (!session?.isActive && saved && cleared) hasRecovery = false
+      publish(saved && cleared ? baselineWarning : SAVE_WARNING)
+      return saved && cleared
+    },
     clearAll: () => {
       // Block normal autosaves during a partial deletion so old snapshots cannot
       // refill cleared keys. Only a successful explicit retry enables writes.
@@ -189,6 +241,7 @@ export function createProgressPersistence(storage: JsonStorage) {
         return false
       }
       baselineWarning = null
+      hasRecovery = false
       writable = true
       publish(null)
       return true
@@ -202,9 +255,15 @@ export function withSessionProgress(
   session: PracticeSessionState,
 ): StoredProgress {
   const knownIds = new Set(progress.attempts.map((attempt) => attempt.id))
+  const knownQuestions = new Set(
+    progress.attempts.map((a) => JSON.stringify([a.sessionId, a.questionId])),
+  )
   const added = session.attempts.filter((attempt) => {
-    if (knownIds.has(attempt.id)) return false
+    const questionKey = JSON.stringify([attempt.sessionId, attempt.questionId])
+    if (knownIds.has(attempt.id) || knownQuestions.has(questionKey))
+      return false
     knownIds.add(attempt.id)
+    knownQuestions.add(questionKey)
     return true
   })
   const metadata = {

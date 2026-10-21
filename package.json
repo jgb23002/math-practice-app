@@ -17,6 +17,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc -b",
     "check:responsive": "node scripts/check-responsive.mjs",
+    "check:session-recovery": "node scripts/check-session-recovery.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

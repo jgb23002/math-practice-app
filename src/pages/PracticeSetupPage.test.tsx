@@ -1,15 +1,15 @@
+import TestRouter from '../test/TestRouter'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
 import { expect, test } from 'vitest'
 import App from '../app/App'
 
 function renderSetup() {
   const user = userEvent.setup()
   render(
-    <MemoryRouter initialEntries={['/practice/setup']}>
+    <TestRouter initialEntries={['/practice/setup']}>
       <App />
-    </MemoryRouter>,
+    </TestRouter>,
   )
   return user
 }
@@ -157,6 +157,7 @@ test('passes the complete configuration to the session page and restores it for 
   expect(screen.getByRole('main')).toHaveFocus()
 
   await user.click(screen.getByRole('link', { name: 'Explore Practice' }))
+  await user.click(screen.getByRole('button', { name: 'Leave for Now' }))
   expect(screen.getByRole('checkbox', { name: 'Addition' })).toBeChecked()
   expect(screen.getByRole('checkbox', { name: 'Division' })).toBeChecked()
   expect(

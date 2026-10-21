@@ -21,6 +21,8 @@ interface PracticeSessionContextValue {
   session: PracticeSessionState | null
   dispatchSession: (action: PracticeSessionAction) => boolean
   restartSession: (completedSessionId: string) => boolean
+  getActiveSession: () => PracticeSessionState | null
+  saveCurrentSession: () => boolean
 }
 
 const PracticeSessionContext = createContext<

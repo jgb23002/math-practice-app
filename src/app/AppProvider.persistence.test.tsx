@@ -1,7 +1,7 @@
+import TestRouter from '../test/TestRouter'
 import { act, render, renderHook, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { StrictMode, type PropsWithChildren } from 'react'
-import { MemoryRouter } from 'react-router'
 import { afterEach, expect, test, vi } from 'vitest'
 import StorageWarning from '../components/common/StorageWarning'
 import { STORAGE_KEYS } from '../config/storage'
@@ -223,9 +223,9 @@ test('blocked localStorage access leaves the real app usable with an accessible 
     throw new DOMException('Blocked', 'SecurityError')
   })
   render(
-    <MemoryRouter initialEntries={['/practice/setup']}>
+    <TestRouter initialEntries={['/practice/setup']}>
       <App />
-    </MemoryRouter>,
+    </TestRouter>,
   )
   expect(screen.getByText(SAVE_WARNING)).toHaveAttribute('role', 'status')
   const user = userEvent.setup()
@@ -243,9 +243,9 @@ test('the existing animation control persists through a full application remount
   mockQuestions()
   const renderApp = () =>
     render(
-      <MemoryRouter initialEntries={['/practice/setup']}>
+      <TestRouter initialEntries={['/practice/setup']}>
         <App />
-      </MemoryRouter>,
+      </TestRouter>,
     )
   const first = renderApp()
   const user = userEvent.setup()
@@ -262,6 +262,7 @@ test('the existing animation control persists through a full application remount
   expect(screen.getByRole('radio', { name: 'Level 1: Beginner' })).toBeChecked()
   await user.click(screen.getByRole('checkbox', { name: 'Addition' }))
   await user.click(screen.getByRole('button', { name: 'Start Session' }))
+  await user.click(screen.getByRole('button', { name: 'End and Start New' }))
   expect(
     screen.getByRole('checkbox', { name: /Card animation/ }),
   ).not.toBeChecked()

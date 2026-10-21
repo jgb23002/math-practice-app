@@ -1,6 +1,6 @@
+import TestRouter from '../test/TestRouter'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
 import { expect, test } from 'vitest'
 import App from '../app/App'
 import { STORAGE_KEYS } from '../config/storage'
@@ -13,9 +13,9 @@ import type { StoredProgress } from '../types/persistence'
 function renderSetup(progress = emptyProgress(), state?: { mode: string }) {
   expect(saveStoredProgress(createJsonStorage(), progress)).toBe(true)
   const view = render(
-    <MemoryRouter initialEntries={[{ pathname: '/practice/setup', state }]}>
+    <TestRouter initialEntries={[{ pathname: '/practice/setup', state }]}>
       <App />
-    </MemoryRouter>,
+    </TestRouter>,
   )
   return { ...view, user: userEvent.setup() }
 }
@@ -146,9 +146,9 @@ test('real review cards preserve self-report semantics, reach mastery, finish ea
   expect(screen.getByRole('radio', { name: 'Regular Practice' })).toBeChecked()
   unmount()
   render(
-    <MemoryRouter initialEntries={['/practice/setup']}>
+    <TestRouter initialEntries={['/practice/setup']}>
       <App />
-    </MemoryRouter>,
+    </TestRouter>,
   )
   expect(patterns()[0]).toMatchObject({
     mastered: true,
@@ -170,6 +170,7 @@ test('Practice Mistakes opens review setup with an eligible plan and retains rev
   expect(screen.getByRole('checkbox', { name: 'Addition' })).toBeChecked()
   await user.click(screen.getByRole('button', { name: 'Start Session' }))
   await user.click(screen.getByRole('link', { name: 'Explore Practice' }))
+  await user.click(screen.getByRole('button', { name: 'Leave for Now' }))
   expect(screen.getByRole('radio', { name: 'Mistake Review' })).toBeChecked()
   expect(screen.getByRole('radio', { name: 'Level 2: Easy' })).toBeChecked()
 })

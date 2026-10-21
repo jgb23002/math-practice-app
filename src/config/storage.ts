@@ -9,6 +9,7 @@ export const STORAGE_KEYS = {
   attempts: 'mathPractice.attempts',
   mistakePatterns: 'mathPractice.mistakePatterns',
   statistics: 'mathPractice.statistics',
+  activeSession: 'mathPractice.activeSession',
   version: 'mathPractice.version',
 } as const
 

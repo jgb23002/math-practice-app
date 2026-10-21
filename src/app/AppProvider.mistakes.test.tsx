@@ -1,7 +1,7 @@
+import TestRouter from '../test/TestRouter'
 import { act, render, renderHook, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { StrictMode, type PropsWithChildren } from 'react'
-import { MemoryRouter } from 'react-router'
 import { afterEach, expect, test, vi } from 'vitest'
 import StorageWarning from '../components/common/StorageWarning'
 import { STORAGE_KEYS } from '../config/storage'
@@ -69,9 +69,9 @@ function reveal(api: ReturnType<typeof usePracticeConfiguration>) {
 test('real card records only explicit self-reported mistakes, including disagreement with selected correctness', async () => {
   mockQuestions()
   render(
-    <MemoryRouter initialEntries={['/practice/setup']}>
+    <TestRouter initialEntries={['/practice/setup']}>
       <App />
-    </MemoryRouter>,
+    </TestRouter>,
   )
   const user = userEvent.setup()
   const patterns = () =>

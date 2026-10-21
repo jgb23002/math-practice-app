@@ -1,6 +1,6 @@
+import TestRouter from '../test/TestRouter'
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
 import { afterEach, expect, test, vi } from 'vitest'
 import App from '../app/App'
 import { createDefaultSettings, STORAGE_KEYS } from '../config/storage'
@@ -21,9 +21,9 @@ function renderApp(path = '/settings', progress?: StoredProgress) {
   if (progress)
     expect(saveStoredProgress(createJsonStorage(), progress)).toBe(true)
   const view = render(
-    <MemoryRouter initialEntries={[path]}>
+    <TestRouter initialEntries={[path]}>
       <App />
-    </MemoryRouter>,
+    </TestRouter>,
   )
   return { user: userEvent.setup(), ...view }
 }
@@ -70,6 +70,7 @@ test('saves the encouragement preference, applies it to practice, and retains ex
       name: 'Settings',
     }),
   )
+  await next.user.click(screen.getByRole('button', { name: 'Leave for Now' }))
   await next.user.click(
     screen.getByRole('checkbox', { name: 'Encouraging messages' }),
   )
@@ -203,6 +204,7 @@ test('allows session-only overrides, preserves them when editing, and uses defau
   ).toHaveTextContent('Multiplication, Division')
   expect(storedSettings()).toEqual(defaults)
   await user.click(screen.getByRole('link', { name: 'Explore Practice' }))
+  await user.click(screen.getByRole('button', { name: 'Leave for Now' }))
   expect(screen.getByRole('checkbox', { name: 'Multiplication' })).toBeChecked()
   expect(screen.getByRole('checkbox', { name: 'Addition' })).not.toBeChecked()
   expect(
@@ -247,6 +249,7 @@ test('animation and explanation preferences apply to a revealed card without cha
       name: 'Settings',
     }),
   )
+  await user.click(screen.getByRole('button', { name: 'Leave for Now' }))
   await user.click(screen.getByRole('checkbox', { name: 'Card animation' }))
   await user.click(screen.getByRole('checkbox', { name: 'Show explanations' }))
   await user.click(screen.getByRole('link', { name: 'Continue Practice' }))
@@ -268,6 +271,7 @@ test('animation and explanation preferences apply to a revealed card without cha
       name: 'Settings',
     }),
   )
+  await user.click(screen.getByRole('button', { name: 'Leave for Now' }))
   await user.click(screen.getByRole('checkbox', { name: 'Card animation' }))
   await user.click(screen.getByRole('checkbox', { name: 'Show explanations' }))
   await user.click(screen.getByRole('link', { name: 'Continue Practice' }))

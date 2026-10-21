@@ -1,6 +1,6 @@
+import TestRouter from '../test/TestRouter'
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
 import { afterEach, expect, test, vi } from 'vitest'
 import App from '../app/App'
 import { STORAGE_KEYS } from '../config/storage'
@@ -20,9 +20,9 @@ function renderStatistics(progress?: StoredProgress) {
   if (progress)
     expect(saveStoredProgress(createJsonStorage(), progress)).toBe(true)
   const view = render(
-    <MemoryRouter initialEntries={['/statistics']}>
+    <TestRouter initialEntries={['/statistics']}>
       <App />
-    </MemoryRouter>,
+    </TestRouter>,
   )
   return { ...view, user: userEvent.setup() }
 }
@@ -252,6 +252,7 @@ test('review reports update advanced statistics and move newly mastered facts to
   await user.click(screen.getByRole('button', { name: 'Flip Card' }))
   const nav = screen.getByRole('navigation', { name: 'Main navigation' })
   await user.click(within(nav).getByRole('link', { name: 'Statistics' }))
+  await user.click(screen.getByRole('button', { name: 'Leave for Now' }))
   expectTotals(1, 0, 2, 2)
   await user.click(screen.getByRole('link', { name: 'Continue Practice' }))
   const report = screen.getByRole('button', { name: 'I Got It Right' })
@@ -295,6 +296,7 @@ test('incorrect inverse-review reports increase the original operation and reset
       screen.getByRole('navigation', { name: 'Main navigation' }),
     ).getByRole('link', { name: 'Statistics' }),
   )
+  await user.click(screen.getByRole('button', { name: 'Leave for Now' }))
   expectTotals(1, 0, 1, 0)
   const frequent = within(section()).getByRole('heading', {
     name: 'Most frequently missed operation',

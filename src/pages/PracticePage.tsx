@@ -1,4 +1,6 @@
+import { useContext } from 'react'
 import { Navigate } from 'react-router'
+import SessionExitContext from '../app/SessionExitContext'
 import ButtonLink from '../components/common/ButtonLink'
 import Icon from '../components/common/Icon'
 import PracticePlan from '../components/practice/PracticePlan'
@@ -147,10 +149,12 @@ function ConfiguredCard({
 
 function PracticePage() {
   usePageTitle('Practice session')
+  const leaving = useContext(SessionExitContext)
   const { configuration, session } = usePracticeConfiguration()
   if (!configuration || !session)
     return <Navigate to="/practice/setup" replace />
-  if (!session.isActive) return <Navigate to="/practice/summary" replace />
+  if (!session.isActive)
+    return leaving ? null : <Navigate to="/practice/summary" replace />
   return (
     <section className="practice-page">
       <div className="practice-page__heading">

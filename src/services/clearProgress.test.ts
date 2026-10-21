@@ -34,6 +34,9 @@ test.each(Object.values(STORAGE_KEYS))(
     })
     const old = createStatisticsProgress()
     expect(saveStoredProgress(storage, old)).toBe(true)
+    // The recovery key is optional and is absent when no session is active.
+    if (failedKey === STORAGE_KEYS.activeSession)
+      data.set(failedKey, '{old recovery')
     const persistence = createProgressPersistence(storage)
     const remove = access.removeItem.getMockImplementation()!
     access.removeItem.mockImplementation((key) => {

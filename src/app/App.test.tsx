@@ -1,6 +1,6 @@
+import TestRouter from '../test/TestRouter'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
 import { expect, test } from 'vitest'
 import App from './App'
 
@@ -8,9 +8,9 @@ function renderApp(path = '/') {
   const user = userEvent.setup()
 
   render(
-    <MemoryRouter initialEntries={[path]}>
+    <TestRouter initialEntries={[path]}>
       <App />
-    </MemoryRouter>,
+    </TestRouter>,
   )
 
   return user

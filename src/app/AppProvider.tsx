@@ -43,19 +43,25 @@ function AppProvider({
   )
   const [configuration, setConfiguration] =
     useState<PracticeConfiguration | null>(() => {
-      const latest = persistence.initial.sessions[0]
+      const latest =
+        persistence.recoveredSession ?? persistence.initial.sessions[0]
       return isValidPracticeConfiguration(latest) ? latest : null
     })
-  const [session, setSession] = useState<PracticeSessionState | null>(null)
-  const sessionRef = useRef<PracticeSessionState | null>(null)
+  const [session, setSession] = useState<PracticeSessionState | null>(
+    persistence.recoveredSession,
+  )
+  const sessionRef = useRef<PracticeSessionState | null>(
+    persistence.recoveredSession,
+  )
 
   useEffect(() => {
-    persistence.save(progress)
-  }, [persistence, progress])
+    persistence.saveSession(progress, session)
+  }, [persistence, progress, session])
 
   function commitProgress(next: typeof progress) {
     progressRef.current = next
     setProgress(next)
+    persistence.saveSession(next, sessionRef.current)
   }
 
   function updateSettings(candidate: unknown) {
@@ -75,7 +81,9 @@ function AppProvider({
     sessionRef.current = null
     setSession(null)
     setConfiguration(null)
-    commitProgress(createDefaultProgress())
+    const cleared = createDefaultProgress()
+    progressRef.current = cleared
+    setProgress(cleared)
     return persistence.clearAll()
   }
 
@@ -91,7 +99,7 @@ function AppProvider({
       statistics: createEmptyStatistics(),
     }
     commitProgress(cleared)
-    return persistence.save(cleared)
+    return persistence.saveSession(cleared, null)
   }
 
   function configureSession(candidate: unknown) {
@@ -113,9 +121,9 @@ function AppProvider({
       mistakePatterns: progressRef.current.mistakePatterns,
       masteryThreshold: progressRef.current.settings.masteryThreshold,
     })
-    commitProgress(withSessionProgress(progressRef.current, next))
     sessionRef.current = next
     setSession(next)
+    commitProgress(withSessionProgress(progressRef.current, next))
     setConfiguration(snapshot)
     return true
   }
@@ -123,6 +131,15 @@ function AppProvider({
   function dispatchSession(action: PracticeSessionAction) {
     const current = sessionRef.current
     if (!current) return false
+    if (
+      action.type === 'report' &&
+      progressRef.current.attempts.some(
+        (a) =>
+          a.sessionId === action.sessionId &&
+          a.questionId === action.result?.questionId,
+      )
+    )
+      return false
     const next = transitionPracticeSession(current, action, {
       mistakePatterns: progressRef.current.mistakePatterns,
       masteryThreshold: progressRef.current.settings.masteryThreshold,
@@ -132,8 +149,7 @@ function AppProvider({
     // batch must see the new question/session, not an already recorded attempt.
     sessionRef.current = next
     setSession(next)
-    if (action.type === 'report' || action.type === 'end')
-      commitProgress(withSessionProgress(progressRef.current, next))
+    commitProgress(withSessionProgress(progressRef.current, next))
     if (action.type === 'report' && progressRef.current.settings.soundEnabled)
       void playPracticeSound()
     return true
@@ -172,6 +188,10 @@ function AppProvider({
         session,
         dispatchSession,
         restartSession,
+        getActiveSession: () =>
+          sessionRef.current?.isActive ? sessionRef.current : null,
+        saveCurrentSession: () =>
+          persistence.saveSession(progressRef.current, sessionRef.current),
       }}
     >
       {children}

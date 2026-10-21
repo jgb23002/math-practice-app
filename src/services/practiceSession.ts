@@ -180,6 +180,22 @@ export function createPracticeSession(
   return withNextQuestion(session, dependencies)
 }
 
+/** Generate only when a recovered cursor refers to an already recorded card. */
+export function resumePracticeSession(
+  session: PracticeSessionState,
+  dependencies: SessionDependencies = {},
+): PracticeSessionState {
+  if (!session.isActive) return session
+  if (
+    session.sessionLength !== 'continuous' &&
+    session.attempted >= session.sessionLength
+  )
+    return complete(session, dependencies)
+  return session.currentQuestion
+    ? session
+    : withNextQuestion(session, dependencies)
+}
+
 function complete(
   session: PracticeSessionState,
   dependencies: SessionDependencies,

@@ -1,7 +1,8 @@
+import TestRouter from '../test/TestRouter'
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { StrictMode } from 'react'
-import { MemoryRouter, useNavigate } from 'react-router'
+import { useNavigate } from 'react-router'
 import { afterEach, expect, test, vi } from 'vitest'
 import App from '../app/App'
 import AppRoutes from '../app/AppRoutes'
@@ -49,15 +50,17 @@ function renderSummary(
     configureSession: vi.fn(() => false),
     dispatchSession: vi.fn(() => false),
     restartSession: vi.fn(() => false),
+    getActiveSession: vi.fn(() => null),
+    saveCurrentSession: vi.fn(() => true),
   }
   render(
     <StrictMode>
-      <MemoryRouter initialEntries={['/practice/summary']}>
+      <TestRouter initialEntries={['/practice/summary']}>
         <PracticeSessionContext.Provider value={context}>
           <AppRoutes />
           <SummaryReturn />
         </PracticeSessionContext.Provider>
-      </MemoryRouter>
+      </TestRouter>
     </StrictMode>,
   )
   return { user: userEvent.setup(), context }
@@ -188,9 +191,9 @@ test('Practice Again starts one fresh session with the same plan despite rapid c
     })
   const user = userEvent.setup()
   render(
-    <MemoryRouter initialEntries={['/practice/setup']}>
+    <TestRouter initialEntries={['/practice/setup']}>
       <App />
-    </MemoryRouter>,
+    </TestRouter>,
   )
   await user.click(screen.getByRole('checkbox', { name: 'Addition' }))
   await user.click(screen.getByRole('checkbox', { name: 'Division' }))

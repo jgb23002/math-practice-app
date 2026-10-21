@@ -6,7 +6,7 @@ TypeScript, and Vite. Requirements and the development checklist are in
 
 ## Current scope
 
-Phases 1–17 establish the development tools, shared domain types, responsive
+Phases 1–18 establish the development tools, shared domain types, responsive
 application layout, home page, routing, practice configuration, and a tested
 question-generation service with multiple-choice answers and interactive cards.
 Students can configure practice, select an answer, flip a card, and mark how they
@@ -21,6 +21,8 @@ review questions within the original difficulty. Personalized review sessions
 prioritize active mistakes and persist self-reported mastery progress. Practice
 also includes focused-card number shortcuts, accessible announcements, centered
 responsive cards, and optional encouraging messages after recorded self-reports.
+Active cards recover after refresh, with saved selections and revealed answers.
+Navigation prompts let students stay, pause practice, or end their session.
 
 ## Setup
 
@@ -53,10 +55,14 @@ Other commands:
 - `npm run check:responsive`: launch a temporary Vite server and isolated Chrome
   profile to check desktop, tablet, mobile, touch targets, and session behavior.
   Requires Chrome or Chromium; use `CHROME_BIN` for a custom executable path.
+- `npm run check:session-recovery`: use the same isolated runner to check native
+  refresh prompts, exact card recovery, Back/Forward, and safe navigation.
 
 See [the responsive checks and visual changes](docs/responsive-checks.md) for
 screen sizes, optional screenshots, and manual device checks. The remaining
 manual accessibility checks are listed in [the accessibility audit](docs/accessibility-audit.md).
+See [session recovery and navigation checks](docs/session-recovery.md) for saved
+state, failure recovery, browser limitations, and manual checks.
 
 ESLint checks JavaScript, TypeScript, React hooks, and Fast Refresh exports.
 Prettier handles formatting; the supplied assignment documents retain their
@@ -88,12 +94,13 @@ src/
 
 Empty feature folders contain `.gitkeep` placeholders. Card interaction state is
 keyed to the question, and the session context retains selection, reveal state,
-and attempts while the app remains open. Session history is stored locally;
-mistake-review dashboards belong to later phases.
+and attempts. Active cards, session history, mistakes, and mastery progress are
+stored locally and restored on startup.
 
 ## Routes and navigation
 
-React Router's `BrowserRouter` wraps the application in `src/main.tsx`.
+React Router's `createBrowserRouter` and `RouterProvider` wrap the application in
+`src/main.tsx`, enabling navigation blocking for links and browser history.
 `src/app/AppRoutes.tsx` defines the following routes:
 
 | Route               | Page                                        |
@@ -138,8 +145,8 @@ Context. The session page displays that plan. **Explore Practice** and the summa
 defaults. Local draft changes do not alter the saved plan until
 Start Session is selected again. Starting creates a unique session and generates
 the first card from that plan. Session overrides never change saved defaults.
-Direct visits to setup use the saved defaults. Restoring an unfinished card
-belongs to Phase 18.
+Direct visits to setup use the saved defaults and offer **Resume Session** when
+a saved practice exists. Replacing an unfinished session requires confirmation.
 
 The configuration model uses a nonempty operations tuple, one of the four
 difficulty levels, and a length of 5, 10, 20, or `continuous`. It is separate from
@@ -341,8 +348,10 @@ card is excluded from the summary. An empty session can end with zero attempts.
 
 Direct navigation without a session redirects to setup. Completed sessions go to
 their summary, and opening the summary during active practice returns to the
-current card. Active cards survive route changes in memory. A refresh returns to
-setup with saved defaults; stored history and completed attempts remain.
+current card. Active cards survive route changes and refreshes, including the
+question ID, option order, selected answer, reveal state, progress, and review
+queue. Leaving the card offers **Keep Practicing**, **Leave for Now**, or
+**End Session and Leave**. Other pages offer **Resume Session** while it is active.
 
 Tests cover all finite lengths, continuous practice beyond 20 attempts, exact
 completion, disagreement with arithmetic correctness, rapid and stale callbacks,
@@ -386,14 +395,15 @@ failures. Identical serialized values are not written again.
 
 `progressPersistence.ts` loads and saves independently validated categories:
 
-| Key                            | Data                                      |
-| ------------------------------ | ----------------------------------------- |
-| `mathPractice.settings`        | All `AppSettings` fields                  |
-| `mathPractice.sessions`        | Latest 100 session metadata records       |
-| `mathPractice.attempts`        | All completed attempts                    |
-| `mathPractice.statistics`      | Overall, operation, and difficulty totals |
-| `mathPractice.version`         | `{ "version": 1 }`                        |
-| `mathPractice.mistakePatterns` | Validated, deduplicated mistake patterns  |
+| Key                            | Data                                        |
+| ------------------------------ | ------------------------------------------- |
+| `mathPractice.settings`        | All `AppSettings` fields                    |
+| `mathPractice.sessions`        | Latest 100 session metadata records         |
+| `mathPractice.attempts`        | All completed attempts                      |
+| `mathPractice.statistics`      | Overall, operation, and difficulty totals   |
+| `mathPractice.version`         | `{ "version": 1 }`                          |
+| `mathPractice.mistakePatterns` | Validated, deduplicated mistake patterns    |
+| `mathPractice.activeSession`   | Versioned live card and progress checkpoint |
 
 Attempts include selected answers, self-reports, arithmetic, difficulty, source,
 session/question/attempt IDs, and timestamps. Selecting or revealing an answer
@@ -417,14 +427,17 @@ disable writes to protect data; reload after resolving the problem. Version
 metadata is written only after every category saves successfully.
 
 Storage failures leave practice usable in memory and show an accessible, friendly
-warning. Individual write failures do not block other categories, and later
-progress changes retry saving the current snapshot. Local-storage writes across
-keys are not transactional, so a failure may leave some categories newer than
-others. The application reconciles a lagging statistics cache from valid attempts
-on startup. Clearing browser data removes saved progress.
+warning. A live session's complete recovery checkpoint saves before category
+writes, so a failed category write restores consistent attempts, totals, and
+mastery from that checkpoint. A failed checkpoint write stops category writes;
+practice continues in memory with the save warning. Completion first writes a
+checkpoint with no active session, then saves categories and removes recovery
+state. Interrupted cleanup cannot resurrect a completed card. Outside active
+recovery, categories remain independent and a lagging statistics cache is repaired
+from valid attempts on startup. Clearing browser data removes saved progress.
 
 The settings page and the practice card-animation control use persisted
-preferences; active-question recovery belongs to Phase 18. No backend is involved.
+preferences. No backend is involved.
 
 Tests cover JSON round trips, validation, corruption in each category, missing
 data, migration/version protection, quota and access failures, partial writes,
@@ -537,7 +550,7 @@ child-facing settings page does not expose a mastery-threshold control.
 
 **Clear All Application Data** uses a strong native confirmation warning. On
 confirmation it invalidates the active session, clears the setup snapshot, and
-removes all six known `mathPractice.*` keys, including mistake patterns and schema
+removes all seven known `mathPractice.*` keys, including active recovery, mistake patterns, and schema
 metadata. It restores the original settings and empty progress, initializes fresh
 version-1 data, and returns home. Other applications' keys remain untouched.
 Cancellation leaves everything unchanged.
@@ -583,9 +596,9 @@ different facts discards the later conflicting record.
 This optional category fits schema version 1 without changing older category
 shapes. An absent category starts empty; historical attempts are not replayed or
 backfilled. Storage write failures keep patterns usable in memory and show the
-existing save warning. Writes across categories remain nontransactional; a
-partially failed save can leave pattern and attempt history out of sync after a
-reload. Later successful saves within the same app instance repair the snapshot.
+existing save warning. The active-session checkpoint includes attempts, patterns,
+and totals together so partial category writes recover without replaying mistakes
+or mastery changes. Later successful saves repair the independent categories.
 Reset Statistics preserves patterns; Clear All Application Data erases them and
 starts an empty collection.
 
@@ -716,7 +729,8 @@ Legacy review history without attribution remains readable but cannot update or
 guess a parent pattern. New review attempts always have attribution. Mastery
 persists under the existing mistake-pattern key, survives refreshes, and remains
 usable in memory if saving fails. Reset Statistics preserves it; Clear All
-Application Data removes it. Active-card recovery after refresh remains Phase 18.
+Application Data removes it. Active-card recovery preserves review attribution
+and the remaining pattern queue after refresh.
 
 Unit and integration tests cover priority factors/ties, filtered rounds, inverse
 attribution, custom thresholds, mastery and reactivation, incorrect-selected but
@@ -732,7 +746,7 @@ navigation, early completion, and fixed-length review restarts.
 - `mistake.ts`: mistake patterns and mastery progress.
 - `statistics.ts`: overall/operation/difficulty totals and derived mistake rankings.
 - `settings.ts`: application preferences, practice defaults, and mastery threshold.
-- `persistence.ts`: the independently stored progress categories.
+- `persistence.ts`: stored progress categories and the versioned recovery checkpoint.
 
 Attempts retain both the selected answer and the self-reported result. Runtime
 validation covers practice configuration, complete questions, persisted settings,

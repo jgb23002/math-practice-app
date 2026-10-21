@@ -206,12 +206,12 @@
 .statistics-reset__notice:empty {
   display: none;
 }
-@media (max-width: 1050px) {
+@media (max-width: 65.625em) {
   .statistics-page__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
-@media (max-width: 750px) {
+@media (max-width: 46.875em) {
   .statistics-page__heading {
     flex-direction: column;
     align-items: flex-start;
@@ -223,13 +223,15 @@
     grid-template-columns: 1fr;
   }
 }
-@media (max-width: 520px) {
+@media (max-width: 32.5em) {
   .statistics-page__grid,
   .session-history-card__plan {
     grid-template-columns: 1fr;
   }
+  .statistics-metrics,
+  .statistics-overview > .statistics-metrics,
   .session-history-card > .statistics-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr));
   }
   .statistics-page__heading > .button {
     width: 100%;

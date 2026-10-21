@@ -1,7 +1,16 @@
-import { useEffect, useRef, useState, type Ref } from 'react'
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type Ref,
+} from 'react'
 import useReducedMotion from '../../hooks/useReducedMotion'
 import type { Question } from '../../types/question'
 import type { QuestionResult } from '../../types/session'
+import { answerShortcutIndex } from '../../utils/answerShortcut'
+import { spokenQuestion } from '../../utils/spokenQuestion'
 import CardBack from './CardBack'
 import CardFront from './CardFront'
 import './QuestionCard.css'
@@ -23,6 +32,7 @@ interface QuestionCardProps {
 
 interface QuestionCardAttemptProps extends QuestionCardProps {
   frontHeadingRef: Ref<HTMLHeadingElement>
+  questionDescriptionId: string
 }
 
 function QuestionCardAttempt({
@@ -33,6 +43,7 @@ function QuestionCardAttempt({
   showExplanations = true,
   onSelfReport,
   frontHeadingRef,
+  questionDescriptionId,
   onAnswerSelect,
   onReveal,
   initialSelectedAnswer = null,
@@ -74,6 +85,20 @@ function QuestionCardAttempt({
     }
   }
 
+  function handleAnswerShortcut(event: KeyboardEvent<HTMLElement>) {
+    if (flippedRef.current || reported.current) return
+    const index = answerShortcutIndex(event.nativeEvent)
+    if (index === null) return
+    const answer = question.choices[index]
+    if (answer === undefined) return
+    event.preventDefault()
+    selectAnswer(answer)
+    // Expose the newly selected button and its pressed state to screen readers.
+    event.currentTarget
+      .querySelectorAll<HTMLButtonElement>('.answer-choice')
+      [index]?.focus()
+  }
+
   function reportResult(correct: boolean) {
     const answer = selectedAnswerRef.current
     if (!flippedRef.current || answer === null || reported.current) return
@@ -92,7 +117,17 @@ function QuestionCardAttempt({
       className={`question-card${!animationsEnabled || reducedMotion ? ' question-card--static' : ''}`}
       aria-label={`Question ${questionNumber}`}
       data-flipped={isCardFlipped}
+      onKeyDown={handleAnswerShortcut}
     >
+      {/* Keep the live region mounted and outside the hidden/inert faces. */}
+      <p className="visually-hidden" role="status" aria-atomic="true">
+        {isCardFlipped &&
+          `${spokenQuestion(question)} Correct answer: ${question.correctAnswer}. Your answer: ${selectedAnswer}. ${
+            selfReportedCorrect === null
+              ? 'Choose I Got It Right or I Got It Wrong to record your result.'
+              : `You marked this as ${selfReportedCorrect ? 'right' : 'wrong'}. Every try helps you learn!`
+          }`}
+      </p>
       <div className="question-card__turner">
         <div
           className="question-card__face question-card__face--front"
@@ -110,6 +145,7 @@ function QuestionCardAttempt({
             onSelect={selectAnswer}
             onFlip={flipCard}
             headingRef={frontHeadingRef}
+            questionDescriptionId={questionDescriptionId}
           />
         </div>
         <div
@@ -135,6 +171,7 @@ function QuestionCardAttempt({
 }
 
 function QuestionCard(props: QuestionCardProps) {
+  const questionDescriptionId = useId()
   const frontHeading = useRef<HTMLHeadingElement>(null)
   const previousId = useRef(props.question.id)
   const questionId = props.question.id
@@ -145,11 +182,27 @@ function QuestionCard(props: QuestionCardProps) {
   // A new question ID remounts the attempt so no answer, flip, or result leaks
   // into the new card, even when consecutive questions share the same choices.
   return (
-    <QuestionCardAttempt
-      key={props.question.id}
-      {...props}
-      frontHeadingRef={frontHeading}
-    />
+    <>
+      {/* This region survives the keyed attempt so question changes announce. */}
+      <p
+        id={questionDescriptionId}
+        className="visually-hidden"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        Question {props.questionNumber}
+        {props.totalQuestions !== undefined
+          ? ` of ${props.totalQuestions}`
+          : '. Continuous practice'}
+        {`. ${spokenQuestion(props.question)}`}
+      </p>
+      <QuestionCardAttempt
+        key={props.question.id}
+        {...props}
+        frontHeadingRef={frontHeading}
+        questionDescriptionId={questionDescriptionId}
+      />
+    </>
   )
 }
 

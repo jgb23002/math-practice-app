@@ -152,7 +152,7 @@
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 56.25em) {
   .practice-page__layout {
     grid-template-columns: minmax(0, 1fr);
   }

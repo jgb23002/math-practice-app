@@ -33,6 +33,7 @@
 
 .header-inner {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -45,7 +46,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.7rem;
-  flex-shrink: 0;
+  min-width: 0;
   border-radius: 0.65rem;
   text-decoration: none;
 }
@@ -116,6 +117,8 @@
   color: #2a493a;
   background: #e9f1e5;
   box-shadow: inset 0 -3px #c5d7b7;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
 }
 
 .nav-link:active {
@@ -129,12 +132,9 @@
   padding-block: 3rem;
 }
 
-.page-container:focus {
-  outline: none;
-}
-
 .button {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: 0.9rem;
@@ -149,7 +149,6 @@
   text-decoration: none;
   transition:
     transform 160ms ease,
-    background-color 160ms ease,
     box-shadow 160ms ease;
 }
 
@@ -504,6 +503,7 @@
 
 .explore-card {
   display: flex;
+  min-width: 0;
   align-items: flex-start;
   gap: 1.15rem;
   padding: 1.6rem;
@@ -539,11 +539,17 @@
 .explore-icon .icon {
   width: 1.5rem;
   height: 1.5rem;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .explore-copy h3 {
   font-size: 1.15rem;
   letter-spacing: -0.025rem;
+}
+
+.explore-copy {
+  min-width: 0;
 }
 
 .explore-copy p {
@@ -658,7 +664,7 @@
   gap: 0.15rem;
   margin-bottom: 1rem;
   color: var(--blue);
-  font-size: clamp(4rem, 15vw, 6rem);
+  font-size: clamp(2rem, 15vw, 6rem);
   font-weight: 800;
   line-height: 1;
 }
@@ -672,7 +678,7 @@
   margin-top: 2rem;
 }
 
-@media (max-width: 1050px) {
+@media (max-width: 65.625em) {
   .skills-strip {
     flex-direction: column;
     align-items: flex-start;
@@ -694,7 +700,7 @@
   }
 }
 
-@media (max-width: 800px) {
+@media (max-width: 50em) {
   .header-inner {
     flex-direction: column;
     align-items: flex-start;
@@ -747,15 +753,15 @@
   }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 35em) {
   .header-inner,
   .page-container,
   .app-footer {
-    width: calc(100% - 2rem);
+    width: calc(100% - min(2rem, 32px));
   }
 
   .navigation {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 7.5rem), 1fr));
     gap: 0.35rem;
   }
 
@@ -834,7 +840,7 @@
   }
 
   .explore-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .explore-copy .button {

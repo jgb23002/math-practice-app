@@ -87,9 +87,14 @@ test('keyboard filters separate mastered facts without changing stored data or s
   const { user } = renderStatistics(createMistakeStatisticsProgress())
   const saved = JSON.stringify(localStorage)
   const mastered = screen.getByRole('button', { name: 'Mastered (1)' })
+  const active = screen.getByRole('button', { name: 'Active (4)' })
+  expect(active).toHaveTextContent('✓')
+  expect(mastered).not.toHaveTextContent('✓')
   mastered.focus()
   await user.keyboard('{Enter}')
   expect(mastered).toHaveAttribute('aria-pressed', 'true')
+  expect(mastered).toHaveTextContent('✓')
+  expect(active).not.toHaveTextContent('✓')
   expect(screen.getByRole('button', { name: 'Active (4)' })).toHaveAttribute(
     'aria-pressed',
     'false',

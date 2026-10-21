@@ -13,6 +13,7 @@ interface CardFrontProps {
   onSelect: (answer: number) => void
   onFlip: () => void
   headingRef?: Ref<HTMLHeadingElement>
+  questionDescriptionId?: string
 }
 
 function CardFront({
@@ -24,6 +25,7 @@ function CardFront({
   onSelect,
   onFlip,
   headingRef,
+  questionDescriptionId,
 }: CardFrontProps) {
   const helpId = useId()
   return (
@@ -48,12 +50,15 @@ function CardFront({
         className="answer-choices"
         role="group"
         aria-label="Choose one answer"
-        aria-describedby={helpId}
+        aria-describedby={[questionDescriptionId, helpId]
+          .filter(Boolean)
+          .join(' ')}
       >
-        {question.choices.map((answer) => (
+        {question.choices.map((answer, index) => (
           <AnswerChoice
             key={answer}
             answer={answer}
+            shortcutKey={index + 1}
             selected={selectedAnswer === answer}
             disabled={!active}
             onSelect={onSelect}
@@ -63,7 +68,10 @@ function CardFront({
       <p id={helpId} className="question-card__hint">
         {selectedAnswer === null
           ? 'Pick an answer to unlock your card.'
-          : 'You can change your answer before you flip.'}
+          : 'You can change your answer before you flip.'}{' '}
+        <span className="question-card__keyboard-help">
+          Keyboard tip: Tab to this card, then press 1–4 to pick an answer.
+        </span>
       </p>
       <button
         type="button"

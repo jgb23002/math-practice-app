@@ -98,7 +98,7 @@ function CardBack({
           I Got It Wrong
         </button>
       </div>
-      <p className="question-card__result" role="status" aria-atomic="true">
+      <p className="question-card__result">
         {reported
           ? `You marked this as ${selfReportedCorrect ? 'right' : 'wrong'}. Every try helps you learn!`
           : 'Take a moment to check, then choose how you did.'}

@@ -115,6 +115,7 @@ function MistakeStatistics({
               aria-controls={panelId}
               onClick={() => setView(option)}
             >
+              {view === option && <span aria-hidden="true">✓</span>}
               {option === 'active'
                 ? `Active (${stats.activePatterns.length})`
                 : `Mastered (${stats.masteredPatterns.length})`}

@@ -95,6 +95,7 @@ function SessionSummaryPage() {
         </button>
         <ButtonLink
           to="/practice/setup"
+          state={{ editSession: true }}
           variant="secondary"
           aria-describedby="change-settings-note"
         >

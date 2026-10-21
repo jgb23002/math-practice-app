@@ -27,6 +27,24 @@ const RECOVERY_WARNING =
   'Some saved progress couldn’t be read. We’ve kept the parts we could, and you can keep practicing.'
 const VERSION_WARNING =
   'This saved progress uses a version we can’t update. You can keep practicing, but new progress won’t be saved.'
+export const CLEAR_DATA_WARNING =
+  'Some saved data couldn’t be erased on this device. Practice is reset for now, but saved data may return after a reload. Try Clear All Application Data again.'
+
+export function createDefaultProgress(): StoredProgress {
+  return {
+    settings: createDefaultSettings(),
+    sessions: [],
+    attempts: [],
+    statistics: createEmptyStatistics(),
+  }
+}
+
+/** Explicitly authorized deletion, including unreadable data and version metadata. */
+export function clearStoredProgress(storage: JsonStorage): boolean {
+  return Object.values(STORAGE_KEYS)
+    .map((key) => storage.remove(key).ok)
+    .every(Boolean)
+}
 
 function isVersion(value: unknown): value is { version: number } {
   return (
@@ -125,7 +143,14 @@ export function saveStoredProgress(
 export function createProgressPersistence(storage: JsonStorage) {
   const loaded = loadStoredProgress(storage)
   let warning = loaded.warning
+  let baselineWarning = loaded.warning
+  let writable = loaded.writable
   const listeners = new Set<() => void>()
+  function publish(next: string | null) {
+    if (warning === next) return
+    warning = next
+    for (const listener of listeners) listener()
+  }
   return {
     initial: loaded.progress,
     getWarning: () => warning,
@@ -136,14 +161,23 @@ export function createProgressPersistence(storage: JsonStorage) {
       }
     },
     save: (progress: StoredProgress) => {
-      if (!loaded.writable) return false
+      if (!writable) return false
       const saved = saveStoredProgress(storage, progress)
-      const nextWarning = saved ? loaded.warning : SAVE_WARNING
-      if (nextWarning !== warning) {
-        warning = nextWarning
-        for (const listener of listeners) listener()
-      }
+      publish(saved ? baselineWarning : SAVE_WARNING)
       return saved
+    },
+    clearAll: () => {
+      // Block normal autosaves during a partial deletion so old snapshots cannot
+      // refill cleared keys. Only a successful explicit retry enables writes.
+      writable = false
+      if (!clearStoredProgress(storage)) {
+        publish(CLEAR_DATA_WARNING)
+        return false
+      }
+      baselineWarning = null
+      writable = true
+      publish(null)
+      return true
     },
   }
 }

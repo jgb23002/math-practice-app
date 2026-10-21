@@ -6,6 +6,7 @@ interface CardBackProps {
   question: Question
   selectedAnswer: number | null
   active: boolean
+  showExplanations?: boolean
   selfReportedCorrect: boolean | null
   headingRef?: Ref<HTMLHeadingElement>
   onSelfReport: (correct: boolean) => void
@@ -33,6 +34,7 @@ function CardBack({
   question,
   selectedAnswer,
   active,
+  showExplanations = true,
   selfReportedCorrect,
   headingRef,
   onSelfReport,
@@ -63,10 +65,12 @@ function CardBack({
           <dd>{selectedAnswer ?? 'Not selected'}</dd>
         </div>
       </dl>
-      <div className="question-card__explanation">
-        <h3>Let’s think it through</h3>
-        <p>{explain(question)}</p>
-      </div>
+      {showExplanations && (
+        <div className="question-card__explanation">
+          <h3>Let’s think it through</h3>
+          <p>{explain(question)}</p>
+        </div>
+      )}
       <p className="question-card__reflection">
         How did that one go? You decide.
       </p>

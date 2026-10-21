@@ -75,10 +75,6 @@ test.each([
       within(navigation).getAllByRole('link', { current: 'page' }),
     ).toHaveLength(1)
     expect(screen.getByRole('contentinfo')).toBeVisible()
-
-    if (path === '/settings') {
-      expect(screen.getByText('Coming soon')).toBeVisible()
-    }
   },
 )
 
@@ -130,7 +126,7 @@ test('supports the skip link and keyboard-only navigation into practice', async 
   expect(screen.getByRole('main')).toHaveFocus()
 })
 
-test('keeps navigation usable between placeholder pages and home', async () => {
+test('keeps navigation usable between settings and home', async () => {
   const user = renderApp('/practice/session')
   const navigation = screen.getByRole('navigation', { name: 'Main navigation' })
 

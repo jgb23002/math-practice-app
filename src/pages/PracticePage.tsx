@@ -14,7 +14,7 @@ function ConfiguredCard({
 }: {
   configuration: PracticeConfiguration
 }) {
-  const { session, dispatchSession, progress, updateSettings } =
+  const { session, dispatchSession, progress, patchSettings } =
     usePracticeConfiguration()
   const animationsEnabled = progress.settings.animationsEnabled
   if (!session) return null
@@ -37,8 +37,7 @@ function ConfiguredCard({
             type="checkbox"
             checked={animationsEnabled}
             onChange={(event) =>
-              updateSettings({
-                ...progress.settings,
+              patchSettings({
                 animationsEnabled: event.target.checked,
               })
             }
@@ -58,6 +57,7 @@ function ConfiguredCard({
                 : configuration.sessionLength
             }
             animationsEnabled={animationsEnabled}
+            showExplanations={progress.settings.showExplanations}
             initialSelectedAnswer={session.selectedAnswer}
             initiallyRevealed={session.isAnswerRevealed}
             onAnswerSelect={(answer) =>
@@ -123,7 +123,11 @@ function ConfiguredCard({
           <li>Flip and check.</li>
           <li>Tell us how you did.</li>
         </ol>
-        <ButtonLink to="/practice/setup" variant="secondary">
+        <ButtonLink
+          to="/practice/setup"
+          state={{ editSession: true }}
+          variant="secondary"
+        >
           Explore Practice <Icon name="arrow" />
         </ButtonLink>
         {session.sessionLength === 'continuous' && (

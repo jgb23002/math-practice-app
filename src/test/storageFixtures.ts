@@ -11,6 +11,9 @@ export function memoryStorage(initial: Record<string, string> = {}) {
     setItem: vi.fn((key: string, value: string) => {
       data.set(key, value)
     }),
+    removeItem: vi.fn((key: string) => {
+      data.delete(key)
+    }),
   }
   return { data, access, storage: createJsonStorage(() => access) }
 }

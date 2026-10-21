@@ -13,6 +13,7 @@ interface QuestionCardProps {
   questionNumber: number
   totalQuestions?: number
   animationsEnabled?: boolean
+  showExplanations?: boolean
   onSelfReport: (result: QuestionCardResult) => void
   onAnswerSelect?: (answer: number) => void
   onReveal?: (answer: number) => void
@@ -29,6 +30,7 @@ function QuestionCardAttempt({
   questionNumber,
   totalQuestions,
   animationsEnabled = true,
+  showExplanations = true,
   onSelfReport,
   frontHeadingRef,
   onAnswerSelect,
@@ -120,6 +122,7 @@ function QuestionCardAttempt({
           <CardBack
             question={question}
             selectedAnswer={selectedAnswer}
+            showExplanations={showExplanations}
             active={isCardFlipped}
             selfReportedCorrect={selfReportedCorrect}
             headingRef={backHeading}

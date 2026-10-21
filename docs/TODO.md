@@ -492,28 +492,28 @@ Implementation note: Phase 4 returns a validated `ArithmeticQuestion` core. The
 
 ### 48. Create the Settings Page
 
-- [ ] Add a sound-effects setting.
-- [ ] Add a card-animation setting.
-- [ ] Add a show-explanations setting.
-- [ ] Add a default session-length setting.
-- [ ] Add a default difficulty setting.
-- [ ] Add default operation settings.
-- [ ] Save settings automatically or through a save button.
+- [x] Add a sound-effects setting.
+- [x] Add a card-animation setting.
+- [x] Add a show-explanations setting.
+- [x] Add a default session-length setting.
+- [x] Add a default difficulty setting.
+- [x] Add default operation settings.
+- [x] Save settings automatically or through a save button.
 
 ### 49. Apply Default Practice Settings
 
-- [ ] Load default operations on the setup page.
-- [ ] Load the default difficulty.
-- [ ] Load the default session length.
-- [ ] Allow defaults to be changed for an individual session.
+- [x] Load default operations on the setup page.
+- [x] Load the default difficulty.
+- [x] Load the default session length.
+- [x] Allow defaults to be changed for an individual session.
 
 ### 50. Add Clear-All-Data Functionality
 
-- [ ] Add a **Clear All Application Data** button.
-- [ ] Show a strong confirmation warning.
-- [ ] Clear settings, sessions, attempts, and mistake patterns.
-- [ ] Restore application defaults.
-- [ ] Return the user to the home page.
+- [x] Add a **Clear All Application Data** button.
+- [x] Show a strong confirmation warning.
+- [x] Clear settings, sessions, attempts, and mistake patterns.
+- [x] Restore application defaults.
+- [x] Return the user to the home page.
 
 ---
 

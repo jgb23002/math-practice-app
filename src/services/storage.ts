@@ -8,6 +8,7 @@ export type WriteResult = { ok: true } | { ok: false; reason: StorageFailure }
 export interface StorageAccess {
   getItem: (key: string) => string | null
   setItem: (key: string, value: string) => void
+  removeItem: (key: string) => void
 }
 
 /** Resolve storage inside each guarded operation: even accessing it can throw. */
@@ -15,6 +16,14 @@ export function createJsonStorage(
   access: () => StorageAccess = () => window.localStorage,
 ) {
   return {
+    remove(key: string): WriteResult {
+      try {
+        access().removeItem(key)
+        return { ok: true }
+      } catch {
+        return { ok: false, reason: 'unavailable' }
+      }
+    },
     read<T>(
       key: string,
       validate: (value: unknown) => value is T,

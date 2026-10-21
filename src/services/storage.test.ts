@@ -60,6 +60,7 @@ test('handles storage access and reading exceptions', () => {
       throw new Error('read')
     }),
     setItem: vi.fn(),
+    removeItem: vi.fn(),
   }
   expect(createJsonStorage(() => access).read('test', isString)).toEqual({
     status: 'unavailable',

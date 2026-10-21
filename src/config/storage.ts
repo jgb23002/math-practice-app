@@ -2,6 +2,7 @@ import type { AppSettings } from '../types/settings'
 
 export const STORAGE_VERSION = 1
 export const MAX_RECENT_SESSIONS = 100
+export const DEFAULT_MASTERY_THRESHOLD = 3
 export const STORAGE_KEYS = {
   settings: 'mathPractice.settings',
   sessions: 'mathPractice.sessions',
@@ -19,6 +20,6 @@ export function createDefaultSettings(): AppSettings {
     defaultSessionLength: 10,
     defaultDifficulty: 1,
     defaultOperations: [],
-    masteryThreshold: 3,
+    masteryThreshold: DEFAULT_MASTERY_THRESHOLD,
   }
 }

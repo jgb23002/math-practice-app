@@ -7,6 +7,7 @@ import {
 } from 'react'
 import {
   createProgressPersistence,
+  createDefaultProgress,
   withSessionProgress,
 } from '../services/progressPersistence'
 import { createJsonStorage, type JsonStorage } from '../services/storage'
@@ -22,6 +23,8 @@ import type { PracticeConfiguration } from '../types/practiceConfiguration'
 import { isValidPracticeConfiguration } from '../utils/practiceConfiguration'
 import { isAppSettings } from '../utils/storageValidation'
 import { createEmptyStatistics } from '../utils/statistics'
+import type { AppSettings } from '../types/settings'
+import { playPracticeSound } from '../services/practiceSound'
 import PracticeSessionContext from './PracticeSessionContext'
 
 function AppProvider({
@@ -61,6 +64,18 @@ function AppProvider({
       settings: structuredClone(candidate),
     })
     return true
+  }
+
+  function patchSettings(changes: Partial<AppSettings>) {
+    return updateSettings({ ...progressRef.current.settings, ...changes })
+  }
+
+  function clearAllData() {
+    sessionRef.current = null
+    setSession(null)
+    setConfiguration(null)
+    commitProgress(createDefaultProgress())
+    return persistence.clearAll()
   }
 
   function resetStatistics() {
@@ -105,6 +120,8 @@ function AppProvider({
     setSession(next)
     if (action.type === 'report' || action.type === 'end')
       commitProgress(withSessionProgress(progressRef.current, next))
+    if (action.type === 'report' && progressRef.current.settings.soundEnabled)
+      void playPracticeSound()
     return true
   }
 
@@ -131,6 +148,8 @@ function AppProvider({
       value={{
         progress,
         updateSettings,
+        patchSettings,
+        clearAllData,
         resetStatistics,
         storageWarning,
         configuration,

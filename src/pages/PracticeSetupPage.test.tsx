@@ -14,17 +14,20 @@ function renderSetup() {
   return user
 }
 
-test('starts with instructions, no chosen skills or level, and a 10-question default', () => {
+test('starts with no chosen skills, the Beginner default, and 10 questions', () => {
   renderSetup()
   expect(screen.queryAllByRole('checkbox', { checked: true })).toHaveLength(0)
   const difficulty = screen.getByRole('group', { name: 'Find your level' })
   expect(
     within(difficulty).queryAllByRole('radio', { checked: true }),
-  ).toHaveLength(0)
+  ).toHaveLength(1)
+  expect(
+    within(difficulty).getByRole('radio', { name: 'Level 1: Beginner' }),
+  ).toBeChecked()
   expect(screen.getByRole('radio', { name: '10 questions' })).toBeChecked()
   expect(screen.getByRole('button', { name: 'Start Session' })).toBeDisabled()
   expect(screen.getByRole('status')).toHaveTextContent(
-    'Choose at least one math skill and a difficulty level to start.',
+    'Choose at least one math skill to start.',
   )
 })
 
@@ -104,13 +107,13 @@ test('offers all four session lengths and keeps one selected', async () => {
   }
 })
 
-test('requires both an operation and a difficulty and disables again when all operations are removed', async () => {
+test('uses the default difficulty and disables Start when all operations are removed', async () => {
   const user = renderSetup()
   const start = screen.getByRole('button', { name: 'Start Session' })
   await user.click(screen.getByRole('checkbox', { name: 'Addition' }))
-  expect(start).toBeDisabled()
+  expect(start).toBeEnabled()
   expect(screen.getByRole('status')).toHaveTextContent(
-    'Choose a difficulty level to start.',
+    'Your choices look good. Let’s go!',
   )
   await user.click(screen.getByRole('radio', { name: 'Level 1: Beginner' }))
   expect(start).toBeEnabled()

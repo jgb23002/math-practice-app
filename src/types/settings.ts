@@ -1,11 +1,11 @@
 import type { DifficultyLevel, MathOperation } from './question'
-import type { SessionLength } from './session'
+import type { PracticeSessionLength } from './practiceConfiguration'
 
 export interface AppSettings {
   soundEnabled: boolean
   animationsEnabled: boolean
   showExplanations: boolean
-  defaultSessionLength: SessionLength
+  defaultSessionLength: PracticeSessionLength
   defaultDifficulty: DifficultyLevel
   defaultOperations: MathOperation[]
   /** Number of correct similar answers needed for mastery; intended default: 3. */

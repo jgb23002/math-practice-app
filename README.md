@@ -6,7 +6,7 @@ TypeScript, and Vite. Requirements and the development checklist are in
 
 ## Current scope
 
-Phases 1–10 establish the development tools, shared domain types, responsive
+Phases 1–11 establish the development tools, shared domain types, responsive
 application layout, home page, routing, practice configuration, and a tested
 question-generation service with multiple-choice answers and interactive cards.
 Students can configure practice, select an answer, flip a card, and mark how they
@@ -14,8 +14,9 @@ did. Sessions advance automatically, keep self-reported totals and attempts in
 memory, and finish with a session summary and navigation actions. Settings,
 session history, attempts, and aggregate totals persist in browser local storage.
 The statistics page shows overall, operation, difficulty, and recent-session
-performance with a confirmed reset. Mistake review and full settings controls
-belong to later phases.
+performance with a confirmed reset. Application settings control sound,
+animation, explanations, and practice defaults. Mistake review belongs to later
+phases.
 
 ## Setup
 
@@ -61,6 +62,7 @@ src/
 │   ├── common/             # Shared buttons, icons, and question progress
 │   ├── layout/
 │   ├── practice/           # Setup selectors and interactive question cards
+│   ├── settings/           # Accessible preference checkboxes
 │   └── statistics/         # Reusable metrics, breakdowns, and session history
 ├── config/                 # Practice options and arithmetic difficulty rules
 ├── hooks/                  # Titles, practice configuration, and reduced motion
@@ -76,22 +78,22 @@ src/
 Empty feature folders contain `.gitkeep` placeholders. Card interaction state is
 keyed to the question, and the session context retains selection, reveal state,
 and attempts while the app remains open. Session history is stored locally;
-full settings controls and mistake-review dashboards belong to later phases.
+mistake-review dashboards belong to later phases.
 
 ## Routes and navigation
 
 React Router's `BrowserRouter` wraps the application in `src/main.tsx`.
 `src/app/AppRoutes.tsx` defines the following routes:
 
-| Route               | Page                                      |
-| ------------------- | ----------------------------------------- |
-| `/`                 | Home                                      |
-| `/practice/setup`   | Practice configuration form               |
-| `/practice/session` | Active session, or redirect to setup      |
-| `/practice/summary` | Completed-session totals                  |
-| `/statistics`       | Statistics overview and session history   |
-| `/settings`         | Settings placeholder                      |
-| Any unmatched path  | Friendly fallback with a return-home link |
+| Route               | Page                                        |
+| ------------------- | ------------------------------------------- |
+| `/`                 | Home                                        |
+| `/practice/setup`   | Practice configuration form                 |
+| `/practice/session` | Active session, or redirect to setup        |
+| `/practice/summary` | Completed-session totals                    |
+| `/statistics`       | Statistics overview and session history     |
+| `/settings`         | Preferences, defaults, and clear-all action |
+| Any unmatched path  | Friendly fallback with a return-home link   |
 
 Navigation links are styled as large buttons, so browser history and
 standard keyboard interaction work. The layout includes a skip link, visible
@@ -108,8 +110,8 @@ keyboard navigation, page titles, focus changes, and unknown-route recovery.
 
 ## Practice configuration
 
-Setup starts with no math skills or difficulty selected, and a default of 10
-questions. Students can select individual skills or use Mixed operations to
+New setup uses saved practice defaults. The original defaults are no math skills,
+Level 1: Beginner, and 10 questions. Students can select individual skills or use Mixed operations to
 select all four; selecting Mixed operations again clears all four. Difficulty
 and session length use native radio groups, and skills use native checkboxes.
 Selected states include checked controls, borders, and text. Keyboard users can
@@ -120,11 +122,13 @@ An accompanying status message explains what is needed. Validation also runs
 on form submission and at the shared-state boundary.
 
 `AppProvider` stores a validated `PracticeConfiguration` snapshot in React
-Context. The session page displays that plan, and returning to setup restores
-the choices for editing. Local draft changes do not alter the saved plan until
+Context. The session page displays that plan. **Explore Practice** and the summary's
+**Change Settings** restore it for editing; other entries to setup use the saved
+defaults. Local draft changes do not alter the saved plan until
 Start Session is selected again. Starting creates a unique session and generates
-the first card from that plan. The most recent session's plan is restored on the
-setup page after a reload. Restoring an unfinished card belongs to Phase 18.
+the first card from that plan. Session overrides never change saved defaults.
+Direct visits to setup use the saved defaults. Restoring an unfinished card
+belongs to Phase 18.
 
 The configuration model uses a nonempty operations tuple, one of the four
 difficulty levels, and a length of 5, 10, 20, or `continuous`. It is separate from
@@ -327,7 +331,7 @@ card is excluded from the summary. An empty session can end with zero attempts.
 Direct navigation without a session redirects to setup. Completed sessions go to
 their summary, and opening the summary during active practice returns to the
 current card. Active cards survive route changes in memory. A refresh returns to
-setup with the most recent plan; stored history and completed attempts remain.
+setup with saved defaults; stored history and completed attempts remain.
 
 Tests cover all finite lengths, continuous practice beyond 20 attempts, exact
 completion, disagreement with arithmetic correctness, rapid and stale callbacks,
@@ -405,9 +409,8 @@ keys are not transactional, so a failure may leave some categories newer than
 others. The application reconciles a lagging statistics cache from valid attempts
 on startup. Clearing browser data removes saved progress.
 
-Only the existing card-animation control is connected to persisted preferences
-in this phase. Other settings controls and applying practice defaults belong to
-Phase 11; active-question recovery belongs to Phase 18. No backend is involved.
+The settings page and the practice card-animation control use persisted
+preferences; active-question recovery belongs to Phase 18. No backend is involved.
 
 Tests cover JSON round trips, validation, corruption in each category, missing
 data, migration/version protection, quota and access failures, partial writes,
@@ -450,6 +453,54 @@ aggregate history, populated/empty components, confirmation cancellation and
 acceptance, keyboard activation, durable reset, preference preservation, save
 failure/retry, live updates, and invalidation of active-session callbacks.
 
+## Application settings
+
+The settings page saves sound, card-animation, explanation visibility, default
+operations, difficulty, and session length automatically through the validated
+settings API. Defaults are sound off, animation/explanations on, no selected
+operations, Beginner difficulty, and 10 questions. An empty default skill list is
+allowed; students must choose a skill on setup before starting. Native checkboxes
+and radios support keyboard use and expose selected states in text and color.
+
+New sessions begin with saved defaults. Explicitly editing the current session
+preserves its plan, while **Practice Again** repeats the completed plan. Individual
+session changes do not overwrite defaults. Changing presentation preferences does
+not alter the current question, selected answer, or recorded totals. Explanations
+can be hidden while correct/selected answers remain visible. Device reduced-motion
+preferences always take precedence over the animation setting.
+
+Optional sound uses the browser's Web Audio API without assets, external services,
+or dependencies. It is off by default and plays the same quiet, 0.18-second sine
+tone after either accepted self-report. Loading, changing settings, selecting,
+flipping, and duplicate callbacks never play it. Contexts close when playback
+ends; unsupported audio and failures are silent, and resuming a suspended context
+has a one-second timeout.
+
+`AppSettings.masteryThreshold` remains a positive integer in the underlying model,
+validated and persisted with the other settings. Its original value is the named
+`DEFAULT_MASTERY_THRESHOLD` constant in `src/config/storage.ts` (3). Updating other
+preferences preserves a custom threshold. Mistake-review behavior belongs to later
+phases; this phase does not add a mastery control to the child-facing page.
+
+**Clear All Application Data** uses a strong native confirmation warning. On
+confirmation it invalidates the active session, clears the setup snapshot, and
+removes all six known `mathPractice.*` keys, including mistake patterns and schema
+metadata. It restores the original settings and empty progress, initializes fresh
+version-1 data, and returns home. Other applications' keys remain untouched.
+Cancellation leaves everything unchanged.
+
+If deletion fails, the app stays on Settings with a clear warning and a retry
+action. Practice is reset in memory, but some saved data may return after a reload.
+Automatic writes stay disabled after a partial deletion so old snapshots cannot
+refill erased keys. A successful explicit retry enables saving again. An explicit
+clear can also reset corrupt or unsupported-version data.
+
+Tests cover saving/loading, all session lengths, default precedence and overrides,
+live presentation preferences, keyboard controls, custom mastery thresholds,
+sound opt-in and duplicate prevention, audio cleanup/failures, clear confirmation,
+rapid clicks, partial deletion, retry, original defaults, unrelated key protection,
+and invalidation of old session callbacks.
+
 ## Shared types
 
 - `question.ts`: operations, difficulty levels, question sources, and questions.
@@ -462,5 +513,5 @@ failure/retry, live updates, and invalidation of active-session callbacks.
 
 Attempts retain both the selected answer and the self-reported result. Runtime
 validation covers practice configuration, complete questions, persisted settings,
-attempts, sessions, and statistics. Settings controls and mistake-pattern
-validation belong to their respective phases.
+attempts, sessions, and statistics. Mistake-pattern validation belongs to its
+respective phase.

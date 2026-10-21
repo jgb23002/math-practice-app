@@ -258,8 +258,9 @@ test('the existing animation control persists through a full application remount
   ).toBe(false)
   first.unmount()
   renderApp()
-  expect(screen.getByRole('checkbox', { name: 'Addition' })).toBeChecked()
+  expect(screen.getByRole('checkbox', { name: 'Addition' })).not.toBeChecked()
   expect(screen.getByRole('radio', { name: 'Level 1: Beginner' })).toBeChecked()
+  await user.click(screen.getByRole('checkbox', { name: 'Addition' }))
   await user.click(screen.getByRole('button', { name: 'Start Session' }))
   expect(
     screen.getByRole('checkbox', { name: /Card animation/ }),

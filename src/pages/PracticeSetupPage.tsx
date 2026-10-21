@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router'
+import { useLocation, useNavigate } from 'react-router'
 import Icon from '../components/common/Icon'
 import DifficultySelector from '../components/practice/DifficultySelector'
 import OperationSelector from '../components/practice/OperationSelector'
@@ -14,16 +14,29 @@ import './PracticeSetupPage.css'
 
 function PracticeSetupPage() {
   usePageTitle('Practice setup')
-  const { configuration, configureSession } = usePracticeConfiguration()
+  const { configuration, configureSession, progress } =
+    usePracticeConfiguration()
+  const location = useLocation()
+  const editingSession =
+    (location.state as { editSession?: unknown } | null)?.editSession === true
+  const settings = progress.settings
+  const initial =
+    editingSession && configuration
+      ? configuration
+      : {
+          operations: settings.defaultOperations,
+          difficulty: settings.defaultDifficulty,
+          sessionLength: settings.defaultSessionLength,
+        }
   const navigate = useNavigate()
   const [operations, setOperations] = useState<MathOperation[]>(() => [
-    ...(configuration?.operations ?? []),
+    ...initial.operations,
   ])
   const [difficulty, setDifficulty] = useState<DifficultyLevel | null>(
-    configuration?.difficulty ?? null,
+    initial.difficulty,
   )
   const [sessionLength, setSessionLength] = useState<PracticeSessionLength>(
-    configuration?.sessionLength ?? 10,
+    initial.sessionLength,
   )
   const candidate = { operations, difficulty, sessionLength }
   const isValid = isValidPracticeConfiguration(candidate)

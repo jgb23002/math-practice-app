@@ -551,35 +551,35 @@ Implementation note: Phase 4 returns a validated `ArithmeticQuestion` core. The
 
 ### 54. Generate Nearby-Number Questions
 
-- [ ] Create similar questions using nearby operands.
-- [ ] Keep questions within the same difficulty range.
-- [ ] Avoid invalid subtraction questions.
-- [ ] Avoid invalid division questions.
-- [ ] Avoid generating the exact same question too frequently.
+- [x] Create similar questions using nearby operands.
+- [x] Keep questions within the same difficulty range.
+- [x] Avoid invalid subtraction questions.
+- [x] Avoid invalid division questions.
+- [x] Avoid generating the exact same question too frequently.
 
 ### 55. Generate Reversed-Operand Questions
 
-- [ ] Reverse addition operands.
-- [ ] Reverse multiplication operands.
-- [ ] Avoid treating reversed subtraction as equivalent.
-- [ ] Avoid treating reversed division as equivalent.
+- [x] Reverse addition operands.
+- [x] Reverse multiplication operands.
+- [x] Avoid treating reversed subtraction as equivalent.
+- [x] Avoid treating reversed division as equivalent.
 
 ### 56. Generate Fact-Family Questions
 
-- [ ] Generate multiplication questions from division mistakes.
-- [ ] Generate division questions from multiplication mistakes.
-- [ ] Generate subtraction questions from addition mistakes.
-- [ ] Generate addition questions from subtraction mistakes.
-- [ ] Ensure generated questions match the selected difficulty.
+- [x] Generate multiplication questions from division mistakes.
+- [x] Generate division questions from multiplication mistakes.
+- [x] Generate subtraction questions from addition mistakes.
+- [x] Generate addition questions from subtraction mistakes.
+- [x] Ensure generated questions match the selected difficulty.
 
 ### 57. Create the Similar Question Generator Service
 
-- [ ] Accept a mistake pattern.
-- [ ] Select an appropriate similarity strategy.
-- [ ] Generate a valid related question.
-- [ ] Label the question as `mistake-review`.
-- [ ] Attach the related mistake-pattern ID.
-- [ ] Add unit tests for every operation.
+- [x] Accept a mistake pattern.
+- [x] Select an appropriate similarity strategy.
+- [x] Generate a valid related question.
+- [x] Label the question as `mistake-review`.
+- [x] Attach the related mistake-pattern ID.
+- [x] Add unit tests for every operation.
 
 ---
 

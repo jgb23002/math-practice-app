@@ -6,7 +6,7 @@ TypeScript, and Vite. Requirements and the development checklist are in
 
 ## Current scope
 
-Phases 1–12 establish the development tools, shared domain types, responsive
+Phases 1–13 establish the development tools, shared domain types, responsive
 application layout, home page, routing, practice configuration, and a tested
 question-generation service with multiple-choice answers and interactive cards.
 Students can configure practice, select an answer, flip a card, and mark how they
@@ -16,7 +16,8 @@ session history, attempts, and aggregate totals persist in browser local storage
 The statistics page shows overall, operation, difficulty, and recent-session
 performance with a confirmed reset. Application settings control sound,
 animation, explanations, and practice defaults. Self-reported mistakes create
-deduplicated, persistent patterns. Mistake review belongs to later phases.
+deduplicated, persistent patterns. A similar-question service generates related
+review questions within the original difficulty. Review sessions belong to Phase 14.
 
 ## Setup
 
@@ -516,8 +517,8 @@ Repeated mistakes across questions and sessions retain the same pattern ID,
 increment `incorrectCount`, and use the attempt's timestamp for `lastIncorrectAt`.
 New patterns start with count 1, `similarCorrectCount: 0`, and `mastered: false`.
 A repeated incorrect report resets similar-correct progress and reopens mastery.
-Reversed operands are separate patterns, ready to become related questions in
-Phase 13. Regular correct reports do not advance similar-question mastery.
+Reversed operands are separate patterns that can produce related review questions.
+Regular correct reports do not advance similar-question mastery.
 
 Patterns save under `mathPractice.mistakePatterns` and load at startup. Validation
 checks every required field, safe integer counters, ISO timestamps, operation,
@@ -541,6 +542,73 @@ Tests cover all sixteen operation/difficulty combinations, required fields, zero
 answers, stable IDs, repeated mistakes, mastery reset, identity boundaries,
 self-report disagreement, rapid replays, card interactions, remounts, malformed
 records, duplicate recovery, category isolation, and storage failures/retry.
+
+## Similar question generation
+
+`src/services/similarQuestionGenerator.ts` exports
+`generateSimilarQuestion(pattern, options?)` and
+`createSimilarQuestionGenerator(options?)`. The first generates one question; the
+second returns a generator function with its own recent-question history. Each
+question comes from a validated mistake pattern and includes a fresh ID, four
+shuffled unique answer choices, `source: 'mistake-review'`, and
+`mistakePatternId: pattern.id`.
+
+The strategies preserve a concrete relationship to the original mistake:
+
+| Strategy                       | Original mistake | Example related question | Relationship                                     |
+| ------------------------------ | ---------------- | ------------------------ | ------------------------------------------------ |
+| Nearby numbers                 | `8 × 7 = 56`     | `8 × 6 = 48`             | A neighboring multiplication fact                |
+| Reversed operands              | `8 × 7 = 56`     | `7 × 8 = 56`             | Same factors and product                         |
+| Multiplication/division family | `8 × 7 = 56`     | `56 ÷ 8 = 7`             | Undo multiplication using the same three numbers |
+| Division/multiplication family | `56 ÷ 7 = 8`     | `7 × 8 = 56`             | Rebuild the dividend from divisor and quotient   |
+| Addition/subtraction family    | `3 + 4 = 7`      | `7 − 3 = 4`              | Remove one addend to recover the other           |
+| Subtraction/addition family    | `7 − 3 = 4`      | `3 + 4 = 7`              | Recombine the removed amount and remainder       |
+
+Nearby candidates change either or both operands by at most two. Division also
+uses nearby divisors and quotients (within two) to form exact dividends. Every
+candidate passes the existing arithmetic validator at `pattern.difficulty`;
+negative subtraction, zero divisors, fractions, and out-of-range facts are
+discarded. Reversal applies only to addition and multiplication. Fact families
+include both inverse equations and the alternate subtraction/division member
+where valid. The exact original question is always excluded.
+
+A related fact can be mathematically correct and still exceed the level's limits.
+For example, Level 1 permits `10 + 10`, but `20 − 10` exceeds its subtraction
+operand range. Automatic selection uses another valid strategy in that case.
+The optional `strategy` value (`nearby`, `reversed`, or `fact-family`) restricts
+generation to that strategy; an unavailable strategy throws
+`SimilarQuestionGenerationError` with `attempts: 0` instead of changing difficulty.
+
+Use a generator instance for repeated calls:
+
+```ts
+const nextReviewQuestion = createSimilarQuestionGenerator()
+const question = nextReviewQuestion(pattern)
+```
+
+Each instance remembers copies of its last five arithmetic fact identities,
+independent of IDs and choice order. It prefers facts outside that recent window
+across all strategies. If every candidate is recent, it reuses the least recently
+seen fact. A strategy with just one valid candidate necessarily repeats it.
+History stays local to the instance and advances only after successful generation.
+The standalone function is stateless; supply `recentQuestions` (oldest first) to
+apply the same policy using caller-owned history. Only the last five entries count.
+
+Candidate enumeration is finite, including fallback selection. ID, randomness,
+and answer-choice failures retry three times by default, with the existing hard
+limit of ten configurable attempts. Errors retain the attempt count and cause;
+invalid patterns/options fail before generation. The `random` and `createId`
+options allow reproducible tests. This service does not change mastery or store
+results; Phase 14 connects it to review sessions.
+
+Tests exercise each strategy, all operation/level combinations, zero and boundary
+facts, unavailable inverse families, history exhaustion, mutation isolation, and
+bounded failures. Four seeded batches generate 128 original patterns for every
+operation/level pair and test both automatic and nearby review generation:
+16,384 related questions in total. Independent assertions check arithmetic,
+numeric limits, similarity, metadata, IDs, choices, and shuffled answer positions.
+Failures report the seed, sample, original pattern, generated question, random
+draws, and replay command.
 
 ## Shared types
 

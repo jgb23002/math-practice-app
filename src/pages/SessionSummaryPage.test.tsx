@@ -32,6 +32,7 @@ function renderSummary(
       settings: createDefaultSettings(),
       sessions: [],
       attempts: [],
+      mistakePatterns: [],
       statistics: createEmptyStatistics(),
     },
     updateSettings: vi.fn(() => false),

@@ -1,8 +1,10 @@
 import { QUESTION_SYMBOLS } from '../config/difficulty'
+import type { MistakePattern } from '../types/mistake'
 import type { PracticeAttempt, PracticeSession } from '../types/session'
 import type { AppSettings } from '../types/settings'
 import type { AppStatistics, OperationStatistics } from '../types/statistics'
 import { isValidPracticeConfiguration } from './practiceConfiguration'
+import { mistakePatternKey } from './mistakePattern'
 import {
   isDifficultyLevel,
   isMathOperation,
@@ -109,6 +111,31 @@ export function isAttemptHistory(value: unknown): value is PracticeAttempt[] {
 }
 export function isSessionHistory(value: unknown): value is PracticeSession[] {
   return uniqueRecords(value, isPracticeSession)
+}
+
+export function isMistakePattern(value: unknown): value is MistakePattern {
+  if (!record(value) || !isMathOperation(value.operation)) return false
+  return (
+    timestamp(value.lastIncorrectAt) &&
+    integer(value.incorrectCount) &&
+    value.incorrectCount > 0 &&
+    integer(value.similarCorrectCount) &&
+    typeof value.mastered === 'boolean' &&
+    isValidArithmeticQuestion({
+      ...value,
+      source: 'regular',
+      displayText: `${value.firstOperand} ${QUESTION_SYMBOLS[value.operation]} ${value.secondOperand} = ?`,
+    })
+  )
+}
+
+export function isMistakePatternHistory(
+  value: unknown,
+): value is MistakePattern[] {
+  return (
+    uniqueRecords(value, isMistakePattern) &&
+    new Set(value.map(mistakePatternKey)).size === value.length
+  )
 }
 
 export function isAppStatistics(value: unknown): value is AppStatistics {

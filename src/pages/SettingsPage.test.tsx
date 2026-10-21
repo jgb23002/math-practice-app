@@ -11,6 +11,7 @@ import {
 import * as questionGenerator from '../services/questionGenerator'
 import { createJsonStorage } from '../services/storage'
 import { createQuestion } from '../test/questionFixtures'
+import { createMistakePattern } from '../test/mistakeFixtures'
 import { createStatisticsProgress } from '../test/statisticsFixtures'
 import type { StoredProgress } from '../types/persistence'
 
@@ -270,8 +271,9 @@ test('cancelling Clear All leaves settings, history, and the route unchanged', a
 
 test('confirmed Clear All erases progress and mistake patterns, restores defaults, and returns home', async () => {
   vi.spyOn(window, 'confirm').mockReturnValue(true)
-  const { user, unmount } = renderApp('/settings', createStatisticsProgress())
-  localStorage.setItem(STORAGE_KEYS.mistakePatterns, '[{"id":"old-mistake"}]')
+  const progress = createStatisticsProgress()
+  progress.mistakePatterns = [createMistakePattern()]
+  const { user, unmount } = renderApp('/settings', progress)
   localStorage.setItem('other.app.preference', 'stay')
   screen.getByRole('button', { name: clearLabel }).focus()
   await user.keyboard('{Enter}')
@@ -286,7 +288,9 @@ test('confirmed Clear All erases progress and mistake patterns, restores default
   expect(
     JSON.parse(localStorage.getItem(STORAGE_KEYS.statistics)!).attempted,
   ).toBe(0)
-  expect(localStorage.getItem(STORAGE_KEYS.mistakePatterns)).toBeNull()
+  expect(
+    JSON.parse(localStorage.getItem(STORAGE_KEYS.mistakePatterns)!),
+  ).toEqual([])
   expect(localStorage.getItem('other.app.preference')).toBe('stay')
   unmount()
   renderApp()

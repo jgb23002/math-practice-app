@@ -80,12 +80,17 @@ test('missing data loads independent defaults without writes during loading', ()
   expect(access.setItem).not.toHaveBeenCalled()
 })
 
-test.each(['settings', 'sessions', 'attempts', 'statistics'] as const)(
+test.each([
+  'settings',
+  'sessions',
+  'attempts',
+  'statistics',
+  'mistakePatterns',
+] as const)(
   'corrupt %s recovers independently and never deletes other categories',
   (category) => {
     const { storage, data } = memoryStorage({
       'unrelated.app': 'keep',
-      [STORAGE_KEYS.mistakePatterns]: '[{"future":"keep"}]',
     })
     const original = recordedProgress()
     saveStoredProgress(storage, original)
@@ -97,6 +102,7 @@ test.each(['settings', 'sessions', 'attempts', 'statistics'] as const)(
       'sessions',
       'attempts',
       'statistics',
+      'mistakePatterns',
     ] as const)
       if (other !== category)
         expect(loaded.progress[other]).toEqual(original[other])
@@ -105,7 +111,6 @@ test.each(['settings', 'sessions', 'attempts', 'statistics'] as const)(
     else expect(loaded.progress[category]).toEqual(emptyProgress()[category])
     expect(saveStoredProgress(storage, loaded.progress)).toBe(true)
     expect(data.get('unrelated.app')).toBe('keep')
-    expect(data.get(STORAGE_KEYS.mistakePatterns)).toBe('[{"future":"keep"}]')
   },
 )
 

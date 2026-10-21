@@ -6,7 +6,7 @@ TypeScript, and Vite. Requirements and the development checklist are in
 
 ## Current scope
 
-Phases 1–11 establish the development tools, shared domain types, responsive
+Phases 1–12 establish the development tools, shared domain types, responsive
 application layout, home page, routing, practice configuration, and a tested
 question-generation service with multiple-choice answers and interactive cards.
 Students can configure practice, select an answer, flip a card, and mark how they
@@ -15,8 +15,8 @@ memory, and finish with a session summary and navigation actions. Settings,
 session history, attempts, and aggregate totals persist in browser local storage.
 The statistics page shows overall, operation, difficulty, and recent-session
 performance with a confirmed reset. Application settings control sound,
-animation, explanations, and practice defaults. Mistake review belongs to later
-phases.
+animation, explanations, and practice defaults. Self-reported mistakes create
+deduplicated, persistent patterns. Mistake review belongs to later phases.
 
 ## Setup
 
@@ -67,7 +67,7 @@ src/
 ├── config/                 # Practice options and arithmetic difficulty rules
 ├── hooks/                  # Titles, practice configuration, and reduced motion
 ├── pages/                  # Home, setup, practice, summary, placeholders, fallback
-├── services/               # Arithmetic, sessions, JSON storage, and persistence
+├── services/               # Arithmetic, sessions, mistake tracking, and storage
 ├── test/                   # Shared test setup and session fixtures
 ├── types/                  # Questions, sessions, mistakes, statistics, settings
 ├── utils/                  # Randomness, IDs, validation, and session summaries
@@ -373,20 +373,21 @@ failures. Identical serialized values are not written again.
 
 `progressPersistence.ts` loads and saves independently validated categories:
 
-| Key                            | Data                                          |
-| ------------------------------ | --------------------------------------------- |
-| `mathPractice.settings`        | All `AppSettings` fields                      |
-| `mathPractice.sessions`        | Latest 100 session metadata records           |
-| `mathPractice.attempts`        | All completed attempts                        |
-| `mathPractice.statistics`      | Overall, operation, and difficulty totals     |
-| `mathPractice.version`         | `{ "version": 1 }`                            |
-| `mathPractice.mistakePatterns` | Reserved for mistake tracking; left untouched |
+| Key                            | Data                                      |
+| ------------------------------ | ----------------------------------------- |
+| `mathPractice.settings`        | All `AppSettings` fields                  |
+| `mathPractice.sessions`        | Latest 100 session metadata records       |
+| `mathPractice.attempts`        | All completed attempts                    |
+| `mathPractice.statistics`      | Overall, operation, and difficulty totals |
+| `mathPractice.version`         | `{ "version": 1 }`                        |
+| `mathPractice.mistakePatterns` | Validated, deduplicated mistake patterns  |
 
 Attempts include selected answers, self-reports, arithmetic, difficulty, source,
 session/question/attempt IDs, and timestamps. Selecting or revealing an answer
 does not save a result. Starting a session saves metadata; self-reports update
-metadata, attempts, and totals; ending saves the completion timestamp. Capping
-recent session metadata does not remove attempts or reduce aggregate totals.
+metadata, attempts, totals, and mistake patterns; ending saves the completion
+timestamp. Capping recent session metadata does not remove attempts or reduce
+aggregate totals.
 
 Validation checks settings, supported operations and lengths, arithmetic bounds,
 nonnegative integer answers, dates, IDs, duplicate attempts, session totals, and
@@ -501,6 +502,46 @@ sound opt-in and duplicate prevention, audio cleanup/failures, clear confirmatio
 rapid clicks, partial deletion, retry, original defaults, unrelated key protection,
 and invalidation of old session callbacks.
 
+## Mistake tracking
+
+`src/services/mistakeTracking.ts` creates or updates a `MistakePattern` only for
+newly accepted attempts whose `selfReportedCorrect` is `false`. A wrong selection,
+flipping the card, or ending an unreported card creates no mistake. A correct
+selection reported as wrong does create one; an incorrect selection reported as
+right does not. The persisted attempt ledger and synchronous session guards
+prevent repeated callbacks, completion, and snapshot saves from counting twice.
+
+Pattern identity is operation, ordered first and second operands, and difficulty.
+Repeated mistakes across questions and sessions retain the same pattern ID,
+increment `incorrectCount`, and use the attempt's timestamp for `lastIncorrectAt`.
+New patterns start with count 1, `similarCorrectCount: 0`, and `mastered: false`.
+A repeated incorrect report resets similar-correct progress and reopens mastery.
+Reversed operands are separate patterns, ready to become related questions in
+Phase 13. Regular correct reports do not advance similar-question mastery.
+
+Patterns save under `mathPractice.mistakePatterns` and load at startup. Validation
+checks every required field, safe integer counters, ISO timestamps, operation,
+difficulty, and the existing arithmetic constraints. Malformed records are
+discarded individually, retaining valid patterns and other progress, with the
+existing friendly recovery warning. Duplicate stored snapshots retain the first
+stable ID, the latest snapshot's review state, and the largest incorrect count;
+counts are not summed because snapshots may overlap. An ID collision across
+different facts discards the later conflicting record.
+
+This optional category fits schema version 1 without changing older category
+shapes. An absent category starts empty; historical attempts are not replayed or
+backfilled. Storage write failures keep patterns usable in memory and show the
+existing save warning. Writes across categories remain nontransactional; a
+partially failed save can leave pattern and attempt history out of sync after a
+reload. Later successful saves within the same app instance repair the snapshot.
+Reset Statistics preserves patterns; Clear All Application Data erases them and
+starts an empty collection.
+
+Tests cover all sixteen operation/difficulty combinations, required fields, zero
+answers, stable IDs, repeated mistakes, mastery reset, identity boundaries,
+self-report disagreement, rapid replays, card interactions, remounts, malformed
+records, duplicate recovery, category isolation, and storage failures/retry.
+
 ## Shared types
 
 - `question.ts`: operations, difficulty levels, question sources, and questions.
@@ -513,5 +554,4 @@ and invalidation of old session callbacks.
 
 Attempts retain both the selected answer and the self-reported result. Runtime
 validation covers practice configuration, complete questions, persisted settings,
-attempts, sessions, and statistics. Mistake-pattern validation belongs to its
-respective phase.
+attempts, sessions, statistics, and mistake patterns.

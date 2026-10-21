@@ -31,7 +31,6 @@ test.each(Object.values(STORAGE_KEYS))(
   (failedKey) => {
     const { storage, data, access } = memoryStorage({
       'other.app': 'keep',
-      [STORAGE_KEYS.mistakePatterns]: '[{"pattern":"keep until cleared"}]',
     })
     const old = createStatisticsProgress()
     expect(saveStoredProgress(storage, old)).toBe(true)
@@ -55,7 +54,7 @@ test.each(Object.values(STORAGE_KEYS))(
     expect(persistence.getWarning()).toBeNull()
     expect(persistence.save(createDefaultProgress())).toBe(true)
     expect(data.get('other.app')).toBe('keep')
-    expect(data.has(STORAGE_KEYS.mistakePatterns)).toBe(false)
+    expect(data.get(STORAGE_KEYS.mistakePatterns)).toBe('[]')
     expect(JSON.parse(data.get(STORAGE_KEYS.settings)!)).toEqual(
       createDefaultProgress().settings,
     )

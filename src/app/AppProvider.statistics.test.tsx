@@ -79,6 +79,7 @@ test('reset invalidates active and stale callbacks, clears totals, and preserves
     settings,
     sessions: [],
     attempts: [],
+    mistakePatterns: [],
     statistics: createEmptyStatistics(),
   })
   expect(generate).toHaveBeenCalledTimes(2)

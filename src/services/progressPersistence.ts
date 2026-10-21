@@ -15,8 +15,10 @@ import {
   isAppSettings,
   isAppStatistics,
   isAttemptHistory,
+  isMistakePatternHistory,
   isSessionHistory,
 } from '../utils/storageValidation'
+import { recordMistakes, recoverMistakePatterns } from './mistakeTracking'
 import type { JsonStorage } from './storage'
 
 export { createEmptyStatistics } from '../utils/statistics'
@@ -35,6 +37,7 @@ export function createDefaultProgress(): StoredProgress {
     settings: createDefaultSettings(),
     sessions: [],
     attempts: [],
+    mistakePatterns: [],
     statistics: createEmptyStatistics(),
   }
 }
@@ -68,7 +71,14 @@ export function loadStoredProgress(storage: JsonStorage) {
   const sessions = storage.read(STORAGE_KEYS.sessions, isSessionHistory)
   const attempts = storage.read(STORAGE_KEYS.attempts, isAttemptHistory)
   const statistics = storage.read(STORAGE_KEYS.statistics, isAppStatistics)
-  const results = [settings, sessions, attempts, statistics]
+  const mistakes = storage.read(
+    STORAGE_KEYS.mistakePatterns,
+    (value): value is unknown[] => Array.isArray(value),
+  )
+  const recoveredMistakes = recoverMistakePatterns(
+    mistakes.status === 'valid' ? mistakes.value : [],
+  )
+  const results = [settings, sessions, attempts, statistics, mistakes]
   const unavailable =
     version.status === 'unavailable' ||
     results.some((result) => result.status === 'unavailable')
@@ -87,6 +97,7 @@ export function loadStoredProgress(storage: JsonStorage) {
             .slice(0, MAX_RECENT_SESSIONS)
         : [],
     attempts: attempts.status === 'valid' ? attempts.value : [],
+    mistakePatterns: recoveredMistakes.patterns,
     statistics:
       statistics.status === 'valid'
         ? statistics.value
@@ -108,7 +119,8 @@ export function loadStoredProgress(storage: JsonStorage) {
     ? SAVE_WARNING
     : !writable
       ? VERSION_WARNING
-      : results.some((result) => result.status === 'invalid')
+      : recoveredMistakes.recovered ||
+          results.some((result) => result.status === 'invalid')
         ? RECOVERY_WARNING
         : null
   return { progress, writable, warning }
@@ -132,6 +144,8 @@ export function saveStoredProgress(
       storage.write(STORAGE_KEYS.sessions, progress.sessions).ok,
     isAttemptHistory(progress.attempts) &&
       storage.write(STORAGE_KEYS.attempts, progress.attempts).ok,
+    isMistakePatternHistory(progress.mistakePatterns) &&
+      storage.write(STORAGE_KEYS.mistakePatterns, progress.mistakePatterns).ok,
     isAppStatistics(progress.statistics) &&
       storage.write(STORAGE_KEYS.statistics, progress.statistics).ok,
   ]
@@ -188,7 +202,11 @@ export function withSessionProgress(
   session: PracticeSessionState,
 ): StoredProgress {
   const knownIds = new Set(progress.attempts.map((attempt) => attempt.id))
-  const added = session.attempts.filter((attempt) => !knownIds.has(attempt.id))
+  const added = session.attempts.filter((attempt) => {
+    if (knownIds.has(attempt.id)) return false
+    knownIds.add(attempt.id)
+    return true
+  })
   const metadata = {
     id: session.id,
     startedAt: session.startedAt,
@@ -209,6 +227,10 @@ export function withSessionProgress(
       .sort((a, b) => b.startedAt.localeCompare(a.startedAt))
       .slice(0, MAX_RECENT_SESSIONS),
     attempts: [...progress.attempts, ...added],
+    mistakePatterns:
+      added.length > 0
+        ? recordMistakes(progress.mistakePatterns, added)
+        : progress.mistakePatterns,
     statistics:
       added.length > 0
         ? addAttemptsToStatistics(progress.statistics, added)

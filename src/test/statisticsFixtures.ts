@@ -78,6 +78,7 @@ export function createStatisticsProgress(): StoredProgress {
       defaultSessionLength: 20,
     },
     attempts,
+    mistakePatterns: [],
     sessions: [sessions[1], sessions[3], sessions[0], sessions[2]],
     statistics: {
       attempted: 8,

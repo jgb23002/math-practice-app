@@ -9,6 +9,7 @@ import { createJsonStorage } from '../services/storage'
 import * as questionGenerator from '../services/questionGenerator'
 import { createCompletedSession } from '../test/sessionFixtures'
 import { createQuestion } from '../test/questionFixtures'
+import { createMistakePattern } from '../test/mistakeFixtures'
 import { createStatisticsProgress } from '../test/statisticsFixtures'
 import { emptyProgress } from '../test/storageFixtures'
 import type { StoredProgress } from '../types/persistence'
@@ -196,9 +197,11 @@ test('cancelling the explicit reset confirmation leaves data and the page unchan
 
 test('keyboard-confirmed reset clears history persistently while preserving every preference and unrelated key', async () => {
   vi.spyOn(window, 'confirm').mockReturnValue(true)
-  const { user, unmount } = renderStatistics()
+  const progress = createStatisticsProgress()
+  progress.mistakePatterns = [createMistakePattern()]
+  const { user, unmount } = renderStatistics(progress)
   localStorage.setItem('other.preference', 'stay')
-  localStorage.setItem(STORAGE_KEYS.mistakePatterns, '[{"future":"keep"}]')
+  const patterns = localStorage.getItem(STORAGE_KEYS.mistakePatterns)
   const settings = localStorage.getItem(STORAGE_KEYS.settings)
   const version = localStorage.getItem(STORAGE_KEYS.version)
   screen.getByRole('button', { name: 'Reset Statistics' }).focus()
@@ -225,9 +228,7 @@ test('keyboard-confirmed reset clears history persistently while preserving ever
     expect(group).toEqual({ attempted: 0, correct: 0, incorrect: 0 })
   expect(localStorage.getItem(STORAGE_KEYS.settings)).toBe(settings)
   expect(localStorage.getItem(STORAGE_KEYS.version)).toBe(version)
-  expect(localStorage.getItem(STORAGE_KEYS.mistakePatterns)).toBe(
-    '[{"future":"keep"}]',
-  )
+  expect(localStorage.getItem(STORAGE_KEYS.mistakePatterns)).toBe(patterns)
   expect(localStorage.getItem('other.preference')).toBe('stay')
   unmount()
   render(

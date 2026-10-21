@@ -23,6 +23,7 @@ export function emptyProgress(): StoredProgress {
     settings: createDefaultSettings(),
     sessions: [],
     attempts: [],
+    mistakePatterns: [],
     statistics: createEmptyStatistics(),
   }
 }

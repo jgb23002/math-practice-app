@@ -521,29 +521,29 @@ Implementation note: Phase 4 returns a validated `ArithmeticQuestion` core. The
 
 ### 51. Create Mistake Patterns
 
-- [ ] Create a mistake pattern after an incorrect answer.
-- [ ] Store the operation.
-- [ ] Store both operands.
-- [ ] Store the correct answer.
-- [ ] Store the difficulty level.
-- [ ] Store the last incorrect date.
-- [ ] Initialize the incorrect count.
-- [ ] Initialize the similar-correct count.
+- [x] Create a mistake pattern after an incorrect answer.
+- [x] Store the operation.
+- [x] Store both operands.
+- [x] Store the correct answer.
+- [x] Store the difficulty level.
+- [x] Store the last incorrect date.
+- [x] Initialize the incorrect count.
+- [x] Initialize the similar-correct count.
 
 ### 52. Update Existing Mistake Patterns
 
-- [ ] Detect when the same pattern already exists.
-- [ ] Increment its incorrect count.
-- [ ] Update its last-incorrect timestamp.
-- [ ] Reset or reduce mastery progress when appropriate.
-- [ ] Avoid creating duplicate pattern records.
+- [x] Detect when the same pattern already exists.
+- [x] Increment its incorrect count.
+- [x] Update its last-incorrect timestamp.
+- [x] Reset or reduce mastery progress when appropriate.
+- [x] Avoid creating duplicate pattern records.
 
 ### 53. Store Mistake Patterns Locally
 
-- [ ] Save mistake patterns to local storage.
-- [ ] Load mistake patterns at application startup.
-- [ ] Validate stored mistake-pattern data.
-- [ ] Recover gracefully from invalid records.
+- [x] Save mistake patterns to local storage.
+- [x] Load mistake patterns at application startup.
+- [x] Validate stored mistake-pattern data.
+- [x] Recover gracefully from invalid records.
 
 ---
 

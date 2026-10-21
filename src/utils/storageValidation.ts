@@ -68,6 +68,8 @@ export function isPracticeAttempt(value: unknown): value is PracticeAttempt {
     integer(value.selectedAnswer) &&
     typeof value.selfReportedCorrect === 'boolean' &&
     (value.source === 'regular' || value.source === 'mistake-review') &&
+    (value.mistakePatternId === undefined ||
+      (value.source === 'mistake-review' && id(value.mistakePatternId))) &&
     isValidArithmeticQuestion({
       ...value,
       // Attempts store arithmetic, not presentation or a review-pattern ID.

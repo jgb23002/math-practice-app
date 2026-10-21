@@ -7,6 +7,13 @@ const valid = {
   sessionLength: 10,
 }
 
+test.each(['regular', 'mistake-review'])('accepts practice mode %s', (mode) => {
+  expect(isValidPracticeConfiguration({ ...valid, mode })).toBe(true)
+})
+test.each(['other', null, 1])('rejects invalid practice mode %s', (mode) => {
+  expect(isValidPracticeConfiguration({ ...valid, mode })).toBe(false)
+})
+
 test.each([5, 10, 20, 'continuous'])(
   'accepts a complete configuration with length %s',
   (sessionLength) => {

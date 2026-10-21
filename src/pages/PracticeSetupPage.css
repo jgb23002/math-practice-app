@@ -61,6 +61,7 @@
 }
 
 .operation-choices,
+.mode-choices,
 .difficulty-choices,
 .length-choices {
   display: grid;
@@ -115,6 +116,16 @@
 
 .choice-card input:focus-visible {
   outline: none;
+}
+
+.choice-card.is-unavailable {
+  border-color: #dfe5d8;
+  background: #f3f4ef;
+  cursor: not-allowed;
+}
+
+.choice-card.is-unavailable input {
+  cursor: not-allowed;
 }
 
 .choice-label {
@@ -298,6 +309,7 @@
   }
 
   .operation-choices,
+  .mode-choices,
   .difficulty-choices,
   .length-choices {
     grid-template-columns: 1fr;

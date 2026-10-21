@@ -208,6 +208,7 @@ export function withSessionProgress(
     return true
   })
   const metadata = {
+    ...(session.mode ? { mode: session.mode } : {}),
     id: session.id,
     startedAt: session.startedAt,
     ...(session.completedAt ? { completedAt: session.completedAt } : {}),
@@ -229,7 +230,11 @@ export function withSessionProgress(
     attempts: [...progress.attempts, ...added],
     mistakePatterns:
       added.length > 0
-        ? recordMistakes(progress.mistakePatterns, added)
+        ? recordMistakes(
+            progress.mistakePatterns,
+            added,
+            progress.settings.masteryThreshold,
+          )
         : progress.mistakePatterns,
     statistics:
       added.length > 0

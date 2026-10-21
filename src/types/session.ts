@@ -4,7 +4,10 @@ import type {
   Question,
   QuestionSource,
 } from './question'
-import type { PracticeSessionLength } from './practiceConfiguration'
+import type {
+  PracticeMode,
+  PracticeSessionLength,
+} from './practiceConfiguration'
 
 export type SessionLength = number | 'continuous'
 
@@ -20,11 +23,14 @@ export interface PracticeAttempt {
   selfReportedCorrect: boolean
   difficulty: DifficultyLevel
   source: QuestionSource
+  /** Original pattern for review attempts; absent in legacy stored attempts. */
+  mistakePatternId?: string
   attemptedAt: string
   sessionId: string
 }
 
 export interface PracticeSession {
+  mode?: PracticeMode
   id: string
   startedAt: string
   completedAt?: string
@@ -64,6 +70,8 @@ export interface PracticeSessionState extends PracticeSession {
   isAnswerRevealed: boolean
   attempts: readonly PracticeAttempt[]
   questionError: string | null
+  /** Remaining pattern IDs in this review round; never persisted as metadata. */
+  reviewQueue?: readonly string[]
 }
 
 export type PracticeSessionAction =

@@ -29,6 +29,8 @@ export type RecentQuestion = Pick<
 >
 
 export interface SimilarQuestionOptions extends GenerationOptions {
+  /** Session skill selection also applies to inverse questions. */
+  allowedOperations?: readonly MathOperation[]
   /** Omit to choose randomly among strategies with eligible candidates. */
   strategy?: SimilarityStrategy
   /** Oldest first; only the last five facts affect repetition avoidance. */
@@ -90,9 +92,20 @@ function readOptions(options: SimilarQuestionOptions) {
     createId = createUniqueId,
     maxAttempts = DEFAULT_GENERATION_ATTEMPTS,
     recentQuestions = [],
+    allowedOperations,
   } = options
   if (strategy !== undefined && !strategies.includes(strategy))
     throw new TypeError('Similarity strategy is unsupported.')
+  if (
+    allowedOperations !== undefined &&
+    (!Array.isArray(allowedOperations) ||
+      allowedOperations.length === 0 ||
+      ![...allowedOperations].every(isMathOperation) ||
+      new Set(allowedOperations).size !== allowedOperations.length)
+  )
+    throw new TypeError(
+      'Choose distinct supported operations for review questions.',
+    )
   if (typeof random !== 'function' || typeof createId !== 'function')
     throw new TypeError('Random and ID sources must be functions.')
   if (
@@ -115,6 +128,7 @@ function readOptions(options: SimilarQuestionOptions) {
     random,
     createId,
     maxAttempts,
+    allowedOperations: allowedOperations ? [...allowedOperations] : undefined,
     recentQuestions: recentQuestions
       .slice(-RECENT_SIMILAR_QUESTION_LIMIT)
       .map(factIdentity),
@@ -228,9 +242,20 @@ export function generateSimilarQuestion(
 ): Question {
   if (!isMistakePattern(pattern))
     throw new TypeError('A valid mistake pattern is required.')
-  const { strategy, random, createId, maxAttempts, recentQuestions } =
-    readOptions(options)
+  const {
+    strategy,
+    random,
+    createId,
+    maxAttempts,
+    recentQuestions,
+    allowedOperations,
+  } = readOptions(options)
   const groups = relatedCandidates(pattern)
+  if (allowedOperations)
+    for (const name of strategies)
+      groups[name] = groups[name].filter((question) =>
+        allowedOperations.includes(question.operation),
+      )
   const enabled = strategy ? [strategy] : strategies
   const candidates = enabled.flatMap((name) => groups[name])
   if (candidates.length === 0)

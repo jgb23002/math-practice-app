@@ -6,18 +6,30 @@ import { difficultyOptions, operationOptions } from '../config/practice'
 import usePageTitle from '../hooks/usePageTitle'
 import usePracticeConfiguration from '../hooks/usePracticeConfiguration'
 import { calculateSessionSummary } from '../utils/sessionSummary'
+import {
+  getActiveMistakePatterns,
+  getReviewPatterns,
+} from '../services/mistakeReview'
 import './SessionSummaryPage.css'
 
 function SessionSummaryPage() {
   usePageTitle('Session summary')
-  const { session, restartSession } = usePracticeConfiguration()
+  const { session, restartSession, progress } = usePracticeConfiguration()
   const navigate = useNavigate()
   if (!session) return <Navigate to="/practice/setup" replace />
   if (session.isActive) return <Navigate to="/practice/session" replace />
   const summary = calculateSessionSummary(session)
+  const activeCount = getActiveMistakePatterns(progress.mistakePatterns).length
+  const reviewFinished =
+    session.mode === 'mistake-review' &&
+    getReviewPatterns(progress.mistakePatterns, session).length === 0
 
   function practiceAgain() {
     if (session && restartSession(session.id)) navigate('/practice/session')
+    else if (session?.mode === 'mistake-review')
+      navigate('/practice/setup', {
+        state: { editSession: true, mode: 'regular' },
+      })
   }
 
   return (
@@ -52,6 +64,12 @@ function SessionSummaryPage() {
         correct={summary.correct}
         incorrect={summary.incorrect}
       />
+      {reviewFinished && (
+        <p className="session-summary__note" role="status">
+          You’ve mastered all the review patterns for these skills and level.
+          Great growing!
+        </p>
+      )}
       <dl className="session-summary__details" aria-label="Session details">
         <div>
           <dt>Operations practiced</dt>
@@ -88,7 +106,10 @@ function SessionSummaryPage() {
         <button
           type="button"
           className="button button--secondary session-summary__unavailable"
-          disabled
+          disabled={activeCount === 0}
+          onClick={() =>
+            navigate('/practice/setup', { state: { mode: 'mistake-review' } })
+          }
           aria-describedby="mistake-review-note"
         >
           Practice Mistakes
@@ -109,7 +130,9 @@ function SessionSummaryPage() {
         </ButtonLink>
       </div>
       <p id="mistake-review-note" className="session-summary__note">
-        Practice Mistakes is coming soon. You can try regular practice again!
+        {activeCount > 0
+          ? `${activeCount} active mistake ${activeCount === 1 ? 'pattern is' : 'patterns are'} ready. Choose Practice Mistakes to plan your review.`
+          : 'No active mistake patterns to review. Try Regular Practice for a new challenge!'}
       </p>
       <p id="change-settings-note" className="session-summary__note">
         Change Settings lets you choose your math skills, level, and practice

@@ -3,11 +3,15 @@ import {
   operationOptions,
   sessionLengthOptions,
 } from '../../config/practice'
-import type { PracticeSessionLength } from '../../types/practiceConfiguration'
+import type {
+  PracticeMode,
+  PracticeSessionLength,
+} from '../../types/practiceConfiguration'
 import type { DifficultyLevel, MathOperation } from '../../types/question'
 import './PracticePlan.css'
 
 interface PracticePlanProps {
+  mode?: PracticeMode
   operations: readonly MathOperation[]
   difficulty: DifficultyLevel | null
   sessionLength: PracticeSessionLength
@@ -16,6 +20,7 @@ interface PracticePlanProps {
 }
 
 function PracticePlan({
+  mode = 'regular',
   operations,
   difficulty,
   sessionLength,
@@ -24,6 +29,12 @@ function PracticePlan({
 }: PracticePlanProps) {
   return (
     <dl className={`practice-plan ${className}`} aria-label={label}>
+      <div>
+        <dt>Practice mode</dt>
+        <dd>
+          {mode === 'mistake-review' ? 'Mistake Review' : 'Regular Practice'}
+        </dd>
+      </div>
       <div>
         <dt>Math skills</dt>
         <dd>

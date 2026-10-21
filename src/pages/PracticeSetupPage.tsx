@@ -5,9 +5,17 @@ import DifficultySelector from '../components/practice/DifficultySelector'
 import OperationSelector from '../components/practice/OperationSelector'
 import PracticePlan from '../components/practice/PracticePlan'
 import SessionLengthSelector from '../components/practice/SessionLengthSelector'
+import PracticeModeSelector from '../components/practice/PracticeModeSelector'
 import usePageTitle from '../hooks/usePageTitle'
 import usePracticeConfiguration from '../hooks/usePracticeConfiguration'
-import type { PracticeSessionLength } from '../types/practiceConfiguration'
+import type {
+  PracticeMode,
+  PracticeSessionLength,
+} from '../types/practiceConfiguration'
+import {
+  getActiveMistakePatterns,
+  getReviewPatterns,
+} from '../services/mistakeReview'
 import type { DifficultyLevel, MathOperation } from '../types/question'
 import { isValidPracticeConfiguration } from '../utils/practiceConfiguration'
 import './PracticeSetupPage.css'
@@ -17,18 +25,45 @@ function PracticeSetupPage() {
   const { configuration, configureSession, progress } =
     usePracticeConfiguration()
   const location = useLocation()
-  const editingSession =
-    (location.state as { editSession?: unknown } | null)?.editSession === true
+  const routeState = location.state as {
+    editSession?: unknown
+    mode?: unknown
+  } | null
+  const activePatterns = getActiveMistakePatterns(progress.mistakePatterns)
+  const requestedReview =
+    routeState?.mode === 'mistake-review' && activePatterns.length > 0
+  const editingSession = routeState?.editSession === true
   const settings = progress.settings
-  const initial =
-    editingSession && configuration
+  const initial = requestedReview
+    ? {
+        mode: 'mistake-review' as const,
+        difficulty: activePatterns[0].difficulty,
+        operations: [
+          ...new Set(
+            activePatterns
+              .filter(
+                (pattern) =>
+                  pattern.difficulty === activePatterns[0].difficulty,
+              )
+              .map((pattern) => pattern.operation),
+          ),
+        ],
+        sessionLength: settings.defaultSessionLength,
+      }
+    : editingSession && configuration
       ? configuration
       : {
+          mode: 'regular' as const,
           operations: settings.defaultOperations,
           difficulty: settings.defaultDifficulty,
           sessionLength: settings.defaultSessionLength,
         }
   const navigate = useNavigate()
+  const [mode, setMode] = useState<PracticeMode>(
+    activePatterns.length > 0 && routeState?.mode !== 'regular'
+      ? (initial.mode ?? 'regular')
+      : 'regular',
+  )
   const [operations, setOperations] = useState<MathOperation[]>(() => [
     ...initial.operations,
   ])
@@ -38,8 +73,19 @@ function PracticeSetupPage() {
   const [sessionLength, setSessionLength] = useState<PracticeSessionLength>(
     initial.sessionLength,
   )
-  const candidate = { operations, difficulty, sessionLength }
-  const isValid = isValidPracticeConfiguration(candidate)
+  const candidate = {
+    operations,
+    difficulty,
+    sessionLength,
+    ...(mode === 'mistake-review' ? { mode } : {}),
+  }
+  const eligibleCount = getReviewPatterns(
+    progress.mistakePatterns,
+    candidate,
+  ).length
+  const isValid =
+    isValidPracticeConfiguration(candidate) &&
+    (mode !== 'mistake-review' || eligibleCount > 0)
   const validationMessage =
     operations.length === 0
       ? difficulty === null
@@ -47,11 +93,13 @@ function PracticeSetupPage() {
         : 'Choose at least one math skill to start.'
       : difficulty === null
         ? 'Choose a difficulty level to start.'
-        : 'Your choices look good. Let’s go!'
+        : mode === 'mistake-review' && eligibleCount === 0
+          ? 'No active patterns match these skills and level. Try different choices or Regular Practice.'
+          : 'Your choices look good. Let’s go!'
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!isValidPracticeConfiguration(candidate)) return
+    if (!isValid || !isValidPracticeConfiguration(candidate)) return
     if (configureSession(candidate)) navigate('/practice/session')
   }
 
@@ -73,6 +121,12 @@ function PracticeSetupPage() {
         noValidate
       >
         <div className="setup-fields">
+          <PracticeModeSelector
+            value={mode}
+            activeCount={activePatterns.length}
+            hasPatterns={progress.mistakePatterns.length > 0}
+            onChange={setMode}
+          />
           <OperationSelector value={operations} onChange={setOperations} />
           <DifficultySelector value={difficulty} onChange={setDifficulty} />
           <SessionLengthSelector
@@ -87,10 +141,18 @@ function PracticeSetupPage() {
           <h2 id="plan-heading">Your practice plan</h2>
           <p>A few choices. A little adventure. All at your own pace.</p>
           <PracticePlan
+            mode={mode}
             operations={operations}
             difficulty={difficulty}
             sessionLength={sessionLength}
           />
+          {mode === 'mistake-review' && (
+            <p className="setup-review-count" aria-live="polite">
+              {eligibleCount} active{' '}
+              {eligibleCount === 1 ? 'pattern matches' : 'patterns match'} your
+              choices. Review ends early if you master them all.
+            </p>
+          )}
           <button
             type="submit"
             className="button button--primary setup-start"

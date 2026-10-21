@@ -11,6 +11,28 @@ import {
 } from './similarQuestionGenerator'
 
 const HIGH = 1 - Number.EPSILON
+
+test('session operation restrictions filter related inverse questions without changing difficulty', () => {
+  const original = createMistakePattern()
+  for (const allowedOperations of [['addition'], ['subtraction']] as const) {
+    for (let index = 0; index < 10; index++) {
+      const question = generateSimilarQuestion(original, { allowedOperations })
+      expect(allowedOperations).toContain(question.operation)
+      expect(question.difficulty).toBe(original.difficulty)
+    }
+  }
+  for (const allowedOperations of [
+    [],
+    ['power'],
+    ['addition', 'addition'],
+    Array(1),
+  ])
+    expect(() =>
+      generateSimilarQuestion(original, {
+        allowedOperations: allowedOperations as MathOperation[],
+      }),
+    ).toThrow(TypeError)
+})
 function pattern(
   operation: MathOperation,
   firstOperand: number,

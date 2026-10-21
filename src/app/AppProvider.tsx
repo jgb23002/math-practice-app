@@ -25,6 +25,7 @@ import { isAppSettings } from '../utils/storageValidation'
 import { createEmptyStatistics } from '../utils/statistics'
 import type { AppSettings } from '../types/settings'
 import { playPracticeSound } from '../services/practiceSound'
+import { getReviewPatterns } from '../services/mistakeReview'
 import PracticeSessionContext from './PracticeSessionContext'
 
 function AppProvider({
@@ -97,11 +98,21 @@ function AppProvider({
     if (!isValidPracticeConfiguration(candidate)) return false
 
     const snapshot: PracticeConfiguration = {
+      ...(candidate.mode ? { mode: candidate.mode } : {}),
       operations: [...candidate.operations],
       difficulty: candidate.difficulty,
       sessionLength: candidate.sessionLength,
     }
-    const next = createPracticeSession(snapshot)
+    if (
+      snapshot.mode === 'mistake-review' &&
+      getReviewPatterns(progressRef.current.mistakePatterns, snapshot)
+        .length === 0
+    )
+      return false
+    const next = createPracticeSession(snapshot, {
+      mistakePatterns: progressRef.current.mistakePatterns,
+      masteryThreshold: progressRef.current.settings.masteryThreshold,
+    })
     commitProgress(withSessionProgress(progressRef.current, next))
     sessionRef.current = next
     setSession(next)
@@ -112,7 +123,10 @@ function AppProvider({
   function dispatchSession(action: PracticeSessionAction) {
     const current = sessionRef.current
     if (!current) return false
-    const next = transitionPracticeSession(current, action)
+    const next = transitionPracticeSession(current, action, {
+      mistakePatterns: progressRef.current.mistakePatterns,
+      masteryThreshold: progressRef.current.settings.masteryThreshold,
+    })
     if (next === current) return false
     // Commit synchronously before React renders: stale callbacks in the same
     // batch must see the new question/session, not an already recorded attempt.
@@ -137,6 +151,7 @@ function AppProvider({
     // The first call synchronously replaces the completed snapshot; a second
     // click carrying its old ID cannot create another session.
     return configureSession({
+      ...(current.mode ? { mode: current.mode } : {}),
       operations: [...current.operations],
       difficulty: current.difficulty,
       sessionLength: current.sessionLength,

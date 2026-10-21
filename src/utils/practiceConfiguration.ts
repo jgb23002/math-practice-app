@@ -15,6 +15,9 @@ export function isValidPracticeConfiguration(
   const { operations, difficulty, sessionLength } = configuration
 
   return (
+    (configuration.mode === undefined ||
+      configuration.mode === 'regular' ||
+      configuration.mode === 'mistake-review') &&
     Array.isArray(operations) &&
     operations.length > 0 &&
     new Set(operations).size === operations.length &&

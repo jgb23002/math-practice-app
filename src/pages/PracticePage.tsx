@@ -158,6 +158,12 @@ function PracticePage() {
         </p>
         <h1 id="page-heading">Your practice space</h1>
         <p>Pick an answer, flip your card, and see what you discover.</p>
+        {session.mode === 'mistake-review' && (
+          <p className="selector-help">
+            Mistake Review: these questions connect to your saved tricky facts.
+            Your marks help them become mastered!
+          </p>
+        )}
       </div>
       <ConfiguredCard key={session.id} configuration={configuration} />
     </section>

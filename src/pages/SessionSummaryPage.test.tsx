@@ -124,7 +124,7 @@ test('shows a safe zero-attempt summary and a clear disabled mistake-practice ac
   expect(screen.getByText('No completed questions')).toBeVisible()
   const mistakes = screen.getByRole('button', { name: 'Practice Mistakes' })
   expect(mistakes).toBeDisabled()
-  expect(mistakes).toHaveAccessibleDescription(/coming soon/)
+  expect(mistakes).toHaveAccessibleDescription(/No active mistake patterns/)
   await user.click(mistakes)
   fireEvent.click(mistakes)
   expect(context.restartSession).not.toHaveBeenCalled()

@@ -1,5 +1,6 @@
 import type { MistakePattern } from '../types/mistake'
 import type { PracticeAttempt } from '../types/session'
+import { DEFAULT_MASTERY_THRESHOLD } from '../config/storage'
 import { createUniqueId } from '../utils/ids'
 import { mistakePatternKey } from '../utils/mistakePattern'
 import { isMistakePattern } from '../utils/storageValidation'
@@ -8,12 +9,44 @@ import { isMistakePattern } from '../utils/storageValidation'
 export function recordMistakes(
   patterns: MistakePattern[],
   attempts: readonly PracticeAttempt[],
+  masteryThreshold = DEFAULT_MASTERY_THRESHOLD,
 ): MistakePattern[] {
+  if (!Number.isSafeInteger(masteryThreshold) || masteryThreshold < 1)
+    throw new RangeError('Mastery threshold must be a positive safe integer.')
   const next = [...patterns]
   const indices = new Map(
     next.map((pattern, index) => [mistakePatternKey(pattern), index]),
   )
+  const patternIds = new Map(next.map((pattern, index) => [pattern.id, index]))
   for (const attempt of attempts) {
+    if (attempt.source === 'mistake-review') {
+      const index = patternIds.get(attempt.mistakePatternId ?? '')
+      // Legacy/unattributed review history cannot safely update a pattern.
+      if (index === undefined) continue
+      const previous = next[index]
+      const similarCorrectCount = Math.min(
+        Number.MAX_SAFE_INTEGER,
+        previous.similarCorrectCount + 1,
+      )
+      next[index] = attempt.selfReportedCorrect
+        ? {
+            ...previous,
+            similarCorrectCount,
+            mastered:
+              previous.mastered || similarCorrectCount >= masteryThreshold,
+          }
+        : {
+            ...previous,
+            incorrectCount: Math.min(
+              Number.MAX_SAFE_INTEGER,
+              previous.incorrectCount + 1,
+            ),
+            lastIncorrectAt: attempt.attemptedAt,
+            similarCorrectCount: 0,
+            mastered: false,
+          }
+      continue
+    }
     if (attempt.selfReportedCorrect) continue
     const key = mistakePatternKey(attempt)
     const index = indices.get(key)
@@ -32,8 +65,10 @@ export function recordMistakes(
       }
     } else {
       indices.set(key, next.length)
+      const id = createUniqueId()
+      patternIds.set(id, next.length)
       next.push({
-        id: createUniqueId(),
+        id,
         operation: attempt.operation,
         firstOperand: attempt.firstOperand,
         secondOperand: attempt.secondOperand,

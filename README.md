@@ -6,7 +6,7 @@ TypeScript, and Vite. Requirements and the development checklist are in
 
 ## Current scope
 
-Phases 1–13 establish the development tools, shared domain types, responsive
+Phases 1–14 establish the development tools, shared domain types, responsive
 application layout, home page, routing, practice configuration, and a tested
 question-generation service with multiple-choice answers and interactive cards.
 Students can configure practice, select an answer, flip a card, and mark how they
@@ -17,7 +17,8 @@ The statistics page shows overall, operation, difficulty, and recent-session
 performance with a confirmed reset. Application settings control sound,
 animation, explanations, and practice defaults. Self-reported mistakes create
 deduplicated, persistent patterns. A similar-question service generates related
-review questions within the original difficulty. Review sessions belong to Phase 14.
+review questions within the original difficulty. Personalized review sessions
+prioritize active mistakes and persist self-reported mastery progress.
 
 ## Setup
 
@@ -352,8 +353,10 @@ Regular practice currently produces zero review attempts.
 difficulty, and length. A synchronous session-ID guard prevents rapid clicks from
 starting multiple sessions. **Change Settings** returns to `/practice/setup` with
 the previous choices restored. **View Statistics** opens the statistics dashboard,
-and **Return Home** opens `/`. **Practice Mistakes** is disabled with
-a visible coming-soon explanation until mistake review is implemented.
+and **Return Home** opens `/`. **Practice Mistakes** opens review setup with an
+eligible skill/level plan and is disabled with an explanation when no active
+patterns remain. Practice Again preserves review mode while matching patterns
+remain; after mastering them all, it opens regular setup for a new adventure.
 
 Completion is recorded once: inactive sessions reject later reports,
 end requests, and retries, preserving the original completion timestamp and
@@ -481,8 +484,8 @@ has a one-second timeout.
 `AppSettings.masteryThreshold` remains a positive integer in the underlying model,
 validated and persisted with the other settings. Its original value is the named
 `DEFAULT_MASTERY_THRESHOLD` constant in `src/config/storage.ts` (3). Updating other
-preferences preserves a custom threshold. Mistake-review behavior belongs to later
-phases; this phase does not add a mastery control to the child-facing page.
+preferences preserves a custom threshold. Review uses this saved value; the
+child-facing settings page does not expose a mastery-threshold control.
 
 **Clear All Application Data** uses a strong native confirmation warning. On
 confirmation it invalidates the active session, clears the setup snapshot, and
@@ -505,14 +508,14 @@ and invalidation of old session callbacks.
 
 ## Mistake tracking
 
-`src/services/mistakeTracking.ts` creates or updates a `MistakePattern` only for
+`src/services/mistakeTracking.ts` records regular-practice mistakes only for
 newly accepted attempts whose `selfReportedCorrect` is `false`. A wrong selection,
 flipping the card, or ending an unreported card creates no mistake. A correct
 selection reported as wrong does create one; an incorrect selection reported as
 right does not. The persisted attempt ledger and synchronous session guards
 prevent repeated callbacks, completion, and snapshot saves from counting twice.
 
-Pattern identity is operation, ordered first and second operands, and difficulty.
+Regular-practice pattern identity is operation, ordered operands, and difficulty.
 Repeated mistakes across questions and sessions retain the same pattern ID,
 increment `incorrectCount`, and use the attempt's timestamp for `lastIncorrectAt`.
 New patterns start with count 1, `similarCorrectCount: 0`, and `mastered: false`.
@@ -571,6 +574,8 @@ negative subtraction, zero divisors, fractions, and out-of-range facts are
 discarded. Reversal applies only to addition and multiplication. Fact families
 include both inverse equations and the alternate subtraction/division member
 where valid. The exact original question is always excluded.
+The optional `allowedOperations` list filters inverse questions to the session's
+selected skills as well.
 
 A related fact can be mathematically correct and still exceed the level's limits.
 For example, Level 1 permits `10 + 10`, but `20 − 10` exceeds its subtraction
@@ -598,8 +603,8 @@ Candidate enumeration is finite, including fallback selection. ID, randomness,
 and answer-choice failures retry three times by default, with the existing hard
 limit of ten configurable attempts. Errors retain the attempt count and cause;
 invalid patterns/options fail before generation. The `random` and `createId`
-options allow reproducible tests. This service does not change mastery or store
-results; Phase 14 connects it to review sessions.
+options allow reproducible tests. This service generates review cards; result
+tracking updates mastery separately after an accepted self-report.
 
 Tests exercise each strategy, all operation/level combinations, zero and boundary
 facts, unavailable inverse families, history exhaustion, mutation isolation, and
@@ -609,6 +614,67 @@ operation/level pair and test both automatic and nearby review generation:
 numeric limits, similarity, metadata, IDs, choices, and shuffled answer positions.
 Failures report the seed, sample, original pattern, generated question, random
 draws, and replay command.
+
+## Personalized mistake review
+
+Setup offers **Regular Practice** and **Mistake Review** with keyboard-accessible
+radios and a count of active patterns. Review is disabled with an explanation
+when there are none. Students select skills, a level, and a session length as
+usual; review uses only unmastered patterns matching those skills and level.
+It displays the matching count and blocks starting a plan with no matches.
+Related inverse questions must also use a selected operation.
+
+`src/services/mistakeReview.ts` calculates priority as:
+
+```text
+2 × log2(incorrectCount + 1)
+  + 3 / (1 + daysSinceLastIncorrect / 7)
+  + 3 / (1 + similarCorrectCount)
+```
+
+Each factor independently increases priority for frequent/recent misses or little
+successful review. Scores are grouped into integer bands, with random ordering
+inside a band. A review round visits each matching active pattern once in priority
+order before rebuilding the queue. This mixes patterns without starving a less
+frequent one. Mastered patterns leave the queue immediately, and the next round
+avoids starting with the just-reviewed pattern when alternatives exist.
+
+Every review card and new review attempt retains the original `mistakePatternId`,
+including when an inverse question changes the operation. Correct self-reports
+increment that original pattern's `similarCorrectCount`; selecting or revealing
+an answer does nothing. An incorrect review self-report increments the original
+pattern's miss count, updates its timestamp, resets similar-correct progress, and
+clears mastery. It does not create a second pattern for the generated related
+fact or update another record whose operands happen to match that fact.
+
+The saved `masteryThreshold` defaults to 3. Reaching it marks the pattern mastered,
+so mastery requires that many correct review self-reports since its last
+incorrect report. Regular correct reports do not advance mastery. A later
+incorrect regular-practice report of the original pattern reactivates its stable
+record with cleared progress. Pattern changes are computed from newly accepted
+attempts only; synchronous guards and the attempt ledger prevent repeated clicks
+or snapshot saves from incrementing mastery twice.
+
+Review supports 5, 10, 20, and continuous sessions. It also finishes early when
+all matching patterns are mastered, showing a supportive summary and the actual
+number of review attempts completed. The next card is generated against projected
+mastery from the just-recorded result, so it cannot target a newly mastered
+pattern. Generation failures retain the accepted attempt and expose the existing
+retry action; retry never recounts it. Continuous review also supports End Session.
+
+Session metadata optionally stores `mode`; review attempts optionally store the
+original pattern ID, preserving version-1 compatibility with older records.
+Legacy review history without attribution remains readable but cannot update or
+guess a parent pattern. New review attempts always have attribution. Mastery
+persists under the existing mistake-pattern key, survives refreshes, and remains
+usable in memory if saving fails. Reset Statistics preserves it; Clear All
+Application Data removes it. Active-card recovery after refresh remains Phase 18.
+
+Unit and integration tests cover priority factors/ties, filtered rounds, inverse
+attribution, custom thresholds, mastery and reactivation, incorrect-selected but
+self-reported-correct answers, the reverse disagreement, duplicate clicks,
+generation failure/retry, storage failure/retry, reloads, keyboard setup, summary
+navigation, early completion, and fixed-length review restarts.
 
 ## Shared types
 

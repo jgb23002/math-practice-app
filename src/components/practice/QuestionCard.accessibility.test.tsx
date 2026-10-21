@@ -4,6 +4,92 @@ import { expect, test, vi } from 'vitest'
 import { createQuestion } from '../../test/questionFixtures'
 import QuestionCard from './QuestionCard'
 
+test.each([1, 2, 3, 4])(
+  'Tab focuses the card itself so key %i selects its displayed choice without recording a result',
+  async (key) => {
+    const user = userEvent.setup()
+    const choices = [9, 0, 7, 6]
+    const onAnswerSelect = vi.fn()
+    const onReveal = vi.fn()
+    const onSelfReport = vi.fn()
+    render(
+      <>
+        <label>
+          Practice note <input />
+        </label>
+        <QuestionCard
+          question={createQuestion({ choices })}
+          questionNumber={1}
+          onAnswerSelect={onAnswerSelect}
+          onReveal={onReveal}
+          onSelfReport={onSelfReport}
+        />
+      </>,
+    )
+    await user.tab()
+    await user.keyboard('1234')
+    expect(screen.getByRole('textbox')).toHaveValue('1234')
+    expect(onAnswerSelect).not.toHaveBeenCalled()
+
+    await user.tab()
+    const card = screen.getByRole('article', { name: 'Question 1' })
+    expect(card).toHaveFocus()
+    expect(card).toHaveAccessibleDescription(
+      'Question 1. Continuous practice. 3 plus 4 equals what?',
+    )
+    expect(screen.getByRole('button', { name: 'Flip Card' })).toBeDisabled()
+    await user.keyboard(String(key))
+    const answer = choices[key - 1]
+    const selected = screen.getByRole('button', { name: `Answer ${answer}` })
+    expect(selected).toHaveFocus()
+    expect(selected).toHaveAttribute('aria-pressed', 'true')
+    expect(selected).toHaveClass('is-selected')
+    expect(screen.getAllByRole('button', { pressed: true })).toHaveLength(1)
+    expect(screen.getByRole('button', { name: 'Flip Card' })).toBeEnabled()
+    expect(onAnswerSelect).toHaveBeenCalledExactlyOnceWith(answer)
+    expect(onReveal).not.toHaveBeenCalled()
+    expect(onSelfReport).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: 'Flip Card' }))
+    expect(card).toHaveAttribute('tabindex', '-1')
+    await user.keyboard('1234')
+    expect(onAnswerSelect).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('status')).toHaveTextContent(
+      `Your answer: ${answer}.`,
+    )
+    expect(onReveal).toHaveBeenCalledExactlyOnceWith(answer)
+    expect(onSelfReport).not.toHaveBeenCalled()
+  },
+)
+
+test('mouse and touch can change a keyboard selection before the card is flipped', async () => {
+  const user = userEvent.setup()
+  const onAnswerSelect = vi.fn()
+  const onSelfReport = vi.fn()
+  render(
+    <QuestionCard
+      question={createQuestion()}
+      questionNumber={1}
+      onAnswerSelect={onAnswerSelect}
+      onSelfReport={onSelfReport}
+    />,
+  )
+  await user.tab()
+  await user.keyboard('1')
+  await user.click(screen.getByRole('button', { name: 'Answer 7' }))
+  const touchChoice = screen.getByRole('button', { name: 'Answer 8' })
+  await user.pointer([
+    { keys: '[TouchA>]', target: touchChoice },
+    { keys: '[/TouchA]', target: touchChoice },
+  ])
+  expect(touchChoice).toHaveAttribute('aria-pressed', 'true')
+  expect(touchChoice).toHaveClass('is-selected')
+  expect(screen.getAllByRole('button', { pressed: true })).toHaveLength(1)
+  expect(screen.getByRole('button', { name: 'Flip Card' })).toBeEnabled()
+  expect(onAnswerSelect.mock.calls).toEqual([[6], [7], [8]])
+  expect(onSelfReport).not.toHaveBeenCalled()
+})
+
 test('number shortcuts follow shuffled choice positions, allow changes, and require explicit reveal and self-report', async () => {
   const user = userEvent.setup()
   const onSelfReport = vi.fn()
@@ -18,6 +104,8 @@ test('number shortcuts follow shuffled choice positions, allow changes, and requ
       onReveal={onReveal}
     />,
   )
+  await user.tab()
+  expect(screen.getByRole('article', { name: 'Question 1' })).toHaveFocus()
   await user.tab()
   const first = screen.getByRole('button', { name: 'Answer 9' })
   expect(first).toHaveFocus()

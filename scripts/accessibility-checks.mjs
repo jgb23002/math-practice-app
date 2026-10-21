@@ -253,7 +253,14 @@ export async function checkAccessibility({
       await scan(
         `keyboard-card-${index + 1}-front-animation-${animation}-reduced-${reduced}`,
       )
-      await tabTo('.answer-choice:not(:disabled)')
+      await tabTo('.question-card')
+      assert.notEqual(
+        await evaluate(
+          `getComputedStyle(document.querySelector('.question-card')).outlineStyle`,
+        ),
+        'none',
+        'The card must have a visible keyboard focus indicator',
+      )
       const digit = String((index % 4) + 1)
       await press(digit)
       assert.equal(

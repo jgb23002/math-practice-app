@@ -660,8 +660,10 @@ Implementation note: Phase 4 returns a validated `ArithmeticQuestion` core. The
 - [x] Ensure every control is reachable with Tab.
 - [x] Add visible focus indicators.
 - [x] Support Enter and Space on buttons.
-- [x] Support number keys 1–4 for answer selection.
+- [x] Support number keys 1–4 for answer selection when the card itself is focused with Tab.
 - [x] Prevent keyboard shortcuts from interfering with form inputs.
+
+Keyboard shortcut regression verified: Tab reaches the card before reveal; keys 1–4 select the displayed choices, highlight the selection, and enable Flip Card without recording a result. All 63 targeted tests and the full 1,311-test suite passed, along with native Chrome Tab-to-card and number-key checks. Mouse and simulated-touch changes and typing isolation are covered. Human browser retesting remains pending.
 
 ### 67. Improve Screen-Reader Support
 

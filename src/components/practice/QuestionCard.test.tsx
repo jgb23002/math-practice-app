@@ -233,6 +233,8 @@ test('preserves the current answer when only animation settings change and works
 test('supports a keyboard-only selection, flip, and self-report', async () => {
   const { user, onSelfReport } = renderCard()
   await user.tab()
+  expect(screen.getByRole('article', { name: 'Question 1' })).toHaveFocus()
+  await user.tab()
   expect(screen.getByRole('button', { name: 'Answer 6' })).toHaveFocus()
   await user.keyboard(' ')
   await user.tab()

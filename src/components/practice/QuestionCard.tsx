@@ -117,6 +117,8 @@ function QuestionCardAttempt({
     <article
       className={`question-card${!animationsEnabled || reducedMotion ? ' question-card--static' : ''}`}
       aria-label={`Question ${questionNumber}`}
+      aria-describedby={questionDescriptionId}
+      tabIndex={isCardFlipped ? -1 : 0}
       data-flipped={isCardFlipped}
       onKeyDown={handleAnswerShortcut}
     >

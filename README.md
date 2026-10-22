@@ -4,6 +4,39 @@ A browser-based math practice application for children ages 7–12, built with R
 TypeScript, and Vite. Requirements and the development checklist are in
 [`docs/Specification.md`](docs/Specification.md) and [`docs/TODO.md`](docs/TODO.md).
 
+## Main features
+
+- Addition, subtraction, multiplication, division, and mixed practice across four
+  difficulty levels.
+- Sessions of 5, 10, or 20 questions, or continuous practice.
+- Four-choice question cards with answer selection, card flipping, explanations,
+  and student-reported results. Selecting or revealing an answer does not record a result.
+- Personalized mistake review with mastery progress, session summaries, overall
+  statistics, and breakdowns by operation and difficulty.
+- Saved preferences and progress in browser `localStorage`, including active-session
+  recovery after refresh and confirmation before destructive resets.
+- Responsive layouts, keyboard navigation and answer shortcuts, reduced-motion
+  support, and optional locally generated sound.
+
+## Technology stack
+
+- **Application:** React 19, TypeScript 6, Vite 8, React Router 8, React Context/hooks,
+  HTML, and CSS.
+- **Testing:** Vitest 5, React Testing Library, user-event, and jsdom. Optional
+  browser-check scripts use local Chrome/Chromium and axe-core.
+- **Code quality:** ESLint 10 and Prettier 3.
+- **Storage:** browser `localStorage`; no backend, database, or login is required.
+
+Exact dependency ranges and available commands are defined in [`package.json`](package.json);
+[`package-lock.json`](package-lock.json) records the locked dependency versions.
+
+## GitHub repository
+
+Repository: [jgb23002/math-practice-app](https://github.com/jgb23002/math-practice-app).
+The local `main` branch tracks `origin/main`. The existing phase-by-phase commits,
+keyboard fix, and evidence additions are listed in the
+[development history](docs/Development_logs.md), with commands for reviewing the history.
+
 ## Current scope
 
 Phases 1–19 establish the development tools, shared domain types, responsive
@@ -40,15 +73,24 @@ criteria, executed checks, remaining TODO items, and manual verification.
 
 ## Setup
 
-Use a Node.js version supported by the `engines` field in `package.json`.
-The setup has been verified with Node.js 24.14.1 and npm 11.11.0.
+Prerequisites:
+
+- Git, to clone the repository.
+- Node.js matching `package.json`: `^22.22.0 || ^24.0.0 || >=26.0.0`.
+  Node.js 24.14.1 and npm 11.11.0 are verified in the local environment.
+- npm, to install dependencies and run the project commands, and a web browser.
+
+Clone the repository, enter its root directory, and install the locked dependencies:
 
 ```bash
+git clone https://github.com/jgb23002/math-practice-app.git
+cd math-practice-app
 npm ci
 npm run dev
 ```
 
 Open the local URL printed by Vite. Use Ctrl+C to stop the development server.
+If the repository is already cloned, run the npm commands from its root directory.
 
 ## Verification
 
@@ -59,6 +101,16 @@ npm run typecheck
 npm test
 npm run build
 ```
+
+To build and preview the production application locally:
+
+```bash
+npm run build
+npm run preview
+```
+
+Open the local URL printed by Vite's preview server. Previewing serves `dist`
+locally; it does not publish the application.
 
 Other commands:
 
@@ -192,7 +244,7 @@ src/
 │   └── statistics/         # Reusable metrics, breakdowns, and session history
 ├── config/                 # Practice options and arithmetic difficulty rules
 ├── hooks/                  # Titles, practice configuration, and reduced motion
-├── pages/                  # Home, setup, practice, summary, placeholders, fallback
+├── pages/                  # Home, practice, summary, statistics, settings, errors
 ├── services/               # Arithmetic, sessions, mistake tracking, and storage
 ├── test/                   # Shared test setup and session fixtures
 ├── types/                  # Questions, sessions, mistakes, statistics, settings
@@ -201,8 +253,7 @@ src/
 └── main.tsx
 ```
 
-Empty feature folders contain `.gitkeep` placeholders. Card interaction state is
-keyed to the question, and the session context retains selection, reveal state,
+Card interaction state is keyed to the question, and the session context retains selection, reveal state,
 and attempts. Active cards, session history, mistakes, and mastery progress are
 stored locally and restored on startup.
 

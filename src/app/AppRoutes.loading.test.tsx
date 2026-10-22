@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, expect, test, vi } from 'vitest'
 import TestRouter from '../test/TestRouter'
@@ -29,7 +29,10 @@ test('a lazy page has an accessible loading state and then renders the real sett
     await screen.findByRole('heading', { name: 'Make it feel like you' }),
   ).toBeVisible()
   expect(screen.queryByText('Just a moment…')).not.toBeInTheDocument()
-  expect(document.title).toBe('Settings | Math Practice')
+  // The heading can appear before the page's title-setting effect runs.
+  await waitFor(() => {
+    expect(document.title).toBe('Settings | Math Practice')
+  })
 })
 
 test('a failed lazy download shows a friendly error and allows returning home', async () => {

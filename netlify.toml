@@ -1,14 +1,9 @@
+
 [build]
   command = "npm run build"
   publish = "dist"
 
-[build.environment]
-  NODE_VERSION = "24.14.1"
-
-# Let React Router handle direct links, refreshes, and unknown pages.
-# Existing JavaScript/CSS files retain normal static-file serving.
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  force = false
